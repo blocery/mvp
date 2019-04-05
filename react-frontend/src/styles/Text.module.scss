@@ -1,0 +1,51 @@
+@import "Color.module.scss"; //콜론 필수.
+
+
+.textCenter {
+  text-align: center;
+}
+
+.textRight {
+  text-align: right;
+}
+
+.textSmall {
+  font-size: small;
+}
+
+//right small,  text-small = 그냥 small 임
+.textRs {
+  text-align: right;
+  font-size: small;
+}
+
+.textNoti {
+  color: $color-noti;
+}
+
+.textNotiR {
+  text-align: right;
+  color: $color-noti;
+}
+
+.textNotiS {
+  font-size: small;
+  color: $color-noti;
+}
+
+.textNotiRs {
+  text-align: right;
+  font-size: small;
+  color: $color-noti;
+}
+
+.textWarningR {
+  text-align: right;
+  color: $color-warning; //red
+}
+
+.textWarningRs {
+  text-align: right;
+  font-size: small;
+  color: $color-warning; //red
+}
