@@ -47,10 +47,8 @@ export default class Recommend extends Component{
         //this.props.history.push('/main/recommend/goodsNo')
         const pathName = this.props.history.location.pathname
         console.log('pathname:', pathName)
-        this.props.history.push(`${pathName}?goodsNo=100&productNo=999`)
-        //this.props.history.push('/')
-
-
+        // this.props.history.push(`${pathName}?goodsNo=3`)
+        this.props.history.push(`/goods?goodsNo=3`)
     }
     render(){
         return(

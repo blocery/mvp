@@ -1,12 +1,20 @@
 import React, { Component, Fragment } from 'react';
 import ComUtil from '../../../util/ComUtil';
 import event from '../../../images/event3.png'
-import { Container, Row, Col, ListGroup, ListGroupItem } from 'reactstrap'
+import {Image} from '../../common'
+import { Row, Col } from 'reactstrap'
+import { Server } from '../../Properties'
+
+import Style from './GoodsList.module.scss'
+import TextStyle from '../../../styles/Text.module.scss'
 
 const style = {
     image: {
         width: '100%',
-        height: '170px'
+        height: '100%'
+
+        //width: '100%',
+        //height: '100%'
     }
 }
 
@@ -21,32 +29,36 @@ export default class Goods extends Component {
     }
 
     render() {
+        const goodsImage = this.props.goods.goodsImages[0] != undefined ? Server.getThumbnailURL()+this.props.goods.goodsImages[0].imageUrl : '';
         return(
             <Fragment>
-            <Row>
-                <Col style={{ padding:0 }} onClick={this.onClick}>
-                    <Row>
-                        <Col style={{ paddingLeft: 0, paddingRight: 0 }}><img src={event} style={style.image} /></Col>
-                    </Row>
-                    <p></p>
-                    <Row>
-                        <Col><h5>{this.props.goods.goodsNm}&nbsp;{this.props.goods.packUnit}</h5></Col>
-                    </Row>
-                    <Row>
-                        <Col><h4><i className={'text-info'}>50%</i>&nbsp;{ComUtil.addCommas(this.props.goods.reservationPrice)}원</h4></Col>
-                        <Col className={'text-right text-danger'}></Col>
-                    </Row>
-                    <Row>
-                        <Col>
-                            <h6>예약특가 남은시간 38:30</h6>
-                        </Col>
-                        <Col className={'text-right'}>{ComUtil.utcToString(this.props.goods.expectShippingStart)} 이후 배송시작</Col>
-                    </Row>
-                    {/*<Row>*/}
-                        {/*<Col style={{ paddingLeft: 0, paddingRight: 0 }}><hr /></Col>*/}
-                    {/*</Row>*/}
-                </Col>
-            </Row>
+                <div className={Style.wrap} onClick={this.onClick}>
+                    <div className={Style.imageBox}>
+                        <Image style={style.image} src={goodsImage} borderRadius={true}></Image>
+                    </div>
+                    <div className={Style.contentBox}>
+                        <div className={TextStyle.textLarge}>
+                            {this.props.goods.goodsNm} {this.props.goods.packAmount}{this.props.goods.packUnit}
+                        </div>
+                        <div className={TextStyle.textLarge}><i className={'text-info'}>50%</i>&nbsp;{ComUtil.addCommas(this.props.goods.reservationPrice)}원</div>
+                        <div className={TextStyle.textMedium}>예약특가 남은시간 38:30</div>
+                        <div className={TextStyle.textSmall}>{ComUtil.utcToString(this.props.goods.expectShippingStart)} 이후 배송시작</div>
+                    </div>
+                </div>
+                <hr/>
+                {/*<Row>*/}
+                    {/*<Col xs={3} style={{padding: 0, margin:0}}>*/}
+                        {/*<Image style={style.image} src={goodsImage}></Image>*/}
+                    {/*</Col>*/}
+                    {/*<Col xs={9}>*/}
+                        {/*<div className={TextStyle.textLarge}>*/}
+                            {/*{this.props.goods.goodsNm}{this.props.goods.packAmount}{this.props.goods.packUnit}*/}
+                        {/*</div>*/}
+                        {/*<div className={TextStyle.textLarge}><i className={'text-info'}>50%</i>&nbsp;{ComUtil.addCommas(this.props.goods.reservationPrice)}원</div>*/}
+                        {/*<div className={TextStyle.textMedium}>예약특가 남은시간 38:30</div>*/}
+                        {/*<div className={TextStyle.textSmall}>{ComUtil.utcToString(this.props.goods.expectShippingStart)} 이후 배송시작</div>*/}
+                    {/*</Col>*/}
+                {/*</Row>*/}
                 <br />
             </Fragment>
         )

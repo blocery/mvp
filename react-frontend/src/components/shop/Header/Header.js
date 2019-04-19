@@ -1,11 +1,11 @@
 import React, { Component } from 'react'
 import { Link } from 'react-router-dom'
-import {Container, NavbarToggler, UncontrolledDropdown, Collapse, DropdownToggle, DropdownMenu, Dropdown, DropdownItem, Nav, Navbar, NavbarBrand, NavItem, NavLink} from 'reactstrap'
+import {Row, Col,Container, NavbarToggler, UncontrolledDropdown, Collapse, DropdownToggle, DropdownMenu, Dropdown, DropdownItem, Nav, Navbar, NavbarBrand, NavItem, NavLink} from 'reactstrap'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faShoppingCart, faCarrot, faAppleAlt, faCartPlus, faCartArrowDown, faStar, faStarHalf } from '@fortawesome/free-solid-svg-icons'
 
 import { observer, inject } from 'mobx-react';
-
+import { BloceryLogoWhite } from '../../common'
 
 @inject('HeaderStore')
 @observer
@@ -47,9 +47,11 @@ class Header extends Component{
 
             <Navbar color="info" dark expand="sm" sticky="top" className={'shadow-none'}>
                 {/*<NavbarToggler onClick={this.toggle} />*/}
+
                 <NavbarBrand tag={Link} to={'/'} >
-                    <h6>Blocery</h6>
+                    <BloceryLogoWhite />
                 </NavbarBrand>
+
                 <Nav className="ml-auto" navbar>
                     <NavItem>
                         <NavLink tag={Link} to={'/login'} ><FontAwesomeIcon icon={faShoppingCart} size={'sm'}/></NavLink>
@@ -71,6 +73,11 @@ class Header extends Component{
                                 <DropdownItem>
                                     <NavLink className={'text-info'} tag={Link} to={'/sample/SimpleStorageTest'} >SimpleStorageTest</NavLink>
                                 </DropdownItem>
+
+                                <DropdownItem>
+                                    <NavLink className={'text-info'} tag={Link} to={'/sample/TokenTest'} >TokenTest</NavLink>
+                                </DropdownItem>
+
                             </DropdownMenu>
                         </Dropdown>
                     </NavItem>

@@ -1,7 +1,11 @@
 import React, { Component, Fragment } from 'react'
 import { FarmDiaryGallery, Spinner, Sorter } from '../../common'
 import {Container, Row, Col} from 'reactstrap'
-import { getFarmDiary } from '../../../lib/producerApi'
+import { getFarmDiary } from '../../../lib/farmDiaryApi'
+import ComUtil from '../../../util/ComUtil'
+import {Server} from '../../Properties'
+
+const colStyle = { paddingLeft: 0, paddingRight: 0 }
 
 export default class FarmDiary extends Component {
     constructor(props) {
@@ -16,50 +20,60 @@ export default class FarmDiary extends Component {
     }
     search = async () => {
 
-        this.setState({
-            loading: true
-        })
+        //로딩중
+        this.setState({loading: true})
 
-        const data = await getFarmDiary()
-        alert()
-        console.log('data',data)
+        //ajax
+        const { data } = await getFarmDiary()
+        const bindData = this.makeBindData(data)
+
         this.setState({
             loading: false,
-            data: data
+            data: bindData
         })
     }
+    makeBindData = (data) => {
+        this.sortDesc(data)                 //reference 참조를 통한 정렬
+        return this.getFilteredData(data)   //새로운 배열 반환
+    }
+    //재배일지 등록일자 내림차순 정렬
+    sortDesc = (data) => {
+        data.sort((a,b)=>{
+            //return a.diaryRegDate < b.diaryRegDate ? -1 : a.diaryRegDate > b.diaryRegDate ? 1 : 0
+            return b.cultivationDiary.diaryRegDate - a.cultivationDiary.diaryRegDate
+        })
+    }
+    //goods 에서 card 에 바인딩 할 object 반환
+    getFilteredData = (data) => {
+        const serverImageUrl = Server.getImageURL()
+        return data.map((goods)=>{
+            return {
+                goodsNo: goods.goodsNo,
+                cultivationStepNm: goods.cultivationDiary.cultivationStepNm,
+                imageUrl: goods.cultivationDiary.diaryImages.length > 0 ? serverImageUrl + goods.cultivationDiary.diaryImages[0].imageUrl : '',
+                goodsNm: goods.goodsNm,
+                cultivationStepMemo: goods.cultivationDiary.cultivationStepMemo,
+                diaryRegDate: goods.cultivationDiary.diaryRegDate
+            }
+        })
+    }
+
     onImageClicked = (item) => {
         console.log(item)
     }
     render() {
-        const sorterData = [{cd: '01', nm: '최신등록순'}, {cd: '02', nm: '최신등록순2'},{cd: '03', nm: '최신등록순3'}]
         return(
             <Container>
                 <br/>
-                <h6 className={'text-secondary'}>내가 예약한 농산물 재배현황</h6>
-                <Row>
-                    <Col style={{ paddingLeft: 0, paddingRight: 0 }}>
-                            {/*<Sorter data={sorterData}/>*/}
-                            {
-                                this.state.loading && <Spinner/>
-                            }
-                            <FarmDiaryGallery
-                                data={this.state.data}
-                                onImageClicked={this.onImageClicked}
-                            />
-                    </Col>
-                </Row>
-                <br/>
                 <h6 className={'text-secondary'}>최신등록순</h6>
                 <Row>
-                    <Col style={{ paddingLeft: 0, paddingRight: 0 }}>
-                        {/*<Sorter data={sorterData}/>*/}
+                    <Col style={colStyle}>
                         {
                             this.state.loading && <Spinner/>
                         }
                         <FarmDiaryGallery
                             data={this.state.data}
-                            onImageClicked={this.onImageClicked}
+                            onClick={this.onImageClicked}
                         />
                     </Col>
                 </Row>

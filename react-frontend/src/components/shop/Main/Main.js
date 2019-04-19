@@ -11,13 +11,32 @@ import Goods from '../../common/goodsDetail'
 import { Recommend } from '../Recommend'
 import { Resv } from '../Resv'
 import { FarmDiary } from '../FarmDiary'
-
+import { getLoginUserType, doLogin, doLogout } from "../../../lib/loginApi";
 
 
 export default class Main extends Component {
     constructor(props) {
         super(props)
 
+    }
+
+    //자동로그인을 우선 여기서 시험 중.
+    async componentDidMount() {
+        //test용  logout: await doLogout();
+
+        if (localStorage.getItem('autoLogin')) {
+            let {data:userType} = await getLoginUserType(); //로그인된 사용자 가져오기
+
+            if (!userType) { //로그인이 안되어 있으면..
+                let user = {
+                    email: localStorage.getItem('email'),
+                    valword: localStorage.getItem('valword'),
+                    userType: localStorage.getItem('userType')
+                }
+                console.log({autoLoginUser: user});
+                doLogin(user);
+            }
+        }
     }
 
     getContentPage = () => {

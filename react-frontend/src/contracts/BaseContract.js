@@ -50,10 +50,10 @@ export default class BaseContract {
     }
 
     /* new 이후에 호출 필요 */
-    initContract(contractJson) {
+    async initContract(contractJson) {
 
         let self = this;
-        $.getJSON(contractJson, function (data) {
+        await $.getJSON(contractJson, function (data) {
             // Get the necessary contract artifact file and instantiate it with truffle-contract
             let contractArtifact = data;
 

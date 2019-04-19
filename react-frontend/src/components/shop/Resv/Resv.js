@@ -3,7 +3,7 @@ import { Container, Row, Col, ListGroup, ListGroupItem, Button } from 'reactstra
 
 import GoodsList from '../../common/goodsList';
 
-import { getGoods } from '../../../lib/commonApi'
+import { getGoods } from '../../../lib/goodsApi'
 
 const style = {
     image: {

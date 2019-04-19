@@ -4,7 +4,7 @@ import { Main } from './Main'
 import { Recommend } from './Recommend'
 import { Resv } from './Resv'
 import { Goods } from './goods'
-import { Buy } from './buy'
+import { Buy, BuyConfirm, InputAddress } from './buy'
 
 import { FarmDiary } from './FarmDiary'
 
@@ -18,5 +18,7 @@ export {
     Resv,
     FarmDiary,
     Goods,
-    Buy
+    Buy,
+    BuyConfirm,
+    InputAddress
 }

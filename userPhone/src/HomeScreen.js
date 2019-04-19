@@ -1,9 +1,10 @@
 import React from 'react';
-import { StyleSheet, View, Text, Button, WebView, BackHandler, Platform } from 'react-native';
+import { ToastAndroid, View, WebView, BackHandler, Platform } from 'react-native';
 import { Server } from './Properties';
 import BottomNavigation, {FullTab} from 'react-native-material-bottom-navigation';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-// 아이콘 검색 - https://fontawesome.com/icons?d=gallery
+import AndroidWebView from 'react-native-webview-file-upload-android';
+// 아이콘 검색 - https://materialdesignicons.com/
 
 export default class HomeScreen extends React.Component {
 
@@ -19,59 +20,46 @@ export default class HomeScreen extends React.Component {
 
     constructor(props){
         super(props);
+
+        console.log('constructor ==== ')
+
         this.state = {
+            source: {uri: Server.getMainPage()},
             tabs : [
                 {
                     key: 'home',
                     icon: 'home-outline',
-                    label: 'Home',
-                    barColor: '#388E3C',
-                    pressColor: 'rgba(255,255,255,0.16)',
-                    defaultIcon: 'home-outline',
-                    selectedIcon: 'home'
+                    label: '홈',
+                    barColor: '#f3f3f3',
+                    pressColor: 'rgba(255,255,255,0.16)'
                 },
                 {
-                    key: 'back',
-                    icon: 'arrow-left-bold-circle-outline',
-                    label: 'Back',
-                    barColor: '#388E3C',
-                    pressColor: 'rgba(255,255,255,0.16)',
-                    defaultIcon: 'arrow-left-bold-circle-outline',
-                    selectedIcon: 'arrow-left-bold-circle-outline'
+                    key: 'goods',
+                    icon: 'package-variant',
+                    label: '상품목록',
+                    barColor: '#f3f3f3',
+                    pressColor: 'rgba(255,255,255,0.16)'
                 },
                 {
-                    key: 'category',
-                    icon: 'animation-outline',
-                    label: 'Category',
-                    barColor: '#388E3C',
-                    pressColor: 'rgba(255,255,255,0.16)',
-                    defaultIcon: 'animation-outline',
-                    selectedIcon: 'animation'
-                },
-                {
-                    key: 'farmStory',
-                    icon: 'home-city-outline',
-                    label: 'MyFarmStory',
-                    barColor: '#388E3C',
-                    pressColor: 'rgba(255,255,255,0.16)',
-                    defaultIcon: 'home-city-outline',
-                    selectedIcon: 'home-city'
+                    key: 'farmDiary',
+                    icon: 'notebook',
+                    label: '재배일지',
+                    barColor: '#f3f3f3',
+                    pressColor: 'rgba(255,255,255,0.16)'
                 },
                 {
                     key: 'myPage',
                     icon: 'account-outline',
-                    label: 'My Page',
-                    barColor: '#388E3C',
-                    pressColor: 'rgba(255,255,255,0.16)',
-                    defaultIcon: 'account-outline',
-                    selectedIcon: 'account'
+                    label: '마이페이지',
+                    barColor: '#f3f3f3',
+                    pressColor: 'rgba(255,255,255,0.16)'
                 }
             ]
         }
     }
 
     renderIcon = icon => ({ isActive }) => (
-        <Icon size={24} color='white' name={icon} />
+        <Icon size={24} color='gray' name={icon} />
     )
 
     renderTab = ({ tab, isActive }) => (
@@ -79,96 +67,149 @@ export default class HomeScreen extends React.Component {
             isActive={isActive}
             key={tab.key}
             label={tab.label}
+            labelStyle={{ color: '#313131' }}
             renderIcon={this.renderIcon(tab.icon)}
         />
     )
 
-    changeIcon = (key) => {
-        const state = Object.assign({}, this.state)
-        state.tabs[0].icon = state.tabs[0].defaultIcon;
-        state.tabs[1].icon = state.tabs[1].defaultIcon;
-        state.tabs[2].icon = state.tabs[2].defaultIcon;
-        state.tabs[3].icon = state.tabs[3].defaultIcon;
-        state.tabs[4].icon = state.tabs[4].defaultIcon;
+    sendInfoToWebView = (key) => {
 
         switch(key) {
             case 'home' :
-                state.tabs[0].icon = state.tabs[0].selectedIcon;
+                this.setState({
+                    source: {uri: Server.getMainPage()}
+                });
                 break;
-
-            case 'back' :
-                state.tabs[1].icon = state.tabs[1].selectedIcon;
+            case 'goods' :
+                this.setState({
+                    source: {uri: Server.getGoodsPage()}
+                });
                 break;
-
-            case 'category' :
-                state.tabs[2].icon = state.tabs[2].selectedIcon;
+            case 'farmDiary' :
+                this.setState({
+                    source: {uri: Server.getDiaryPage()}
+                });
                 break;
-
-            case 'farmStory' :
-                state.tabs[3].icon = state.tabs[3].selectedIcon;
-                break;
-
             case 'myPage' :
-                state.tabs[4].icon = state.tabs[4].selectedIcon;
+                this.setState({
+                    source: {uri: Server.getMyPage()}
+                });
                 break;
         }
-        this.setState(state)
-    }
-
-    sendInfoToWebView = (key) => {
-        const data = JSON.stringify({tab: key});
-        this.webView.ref.postMessage(data);
-    }
-
+    };
 
     onAndroidBackPress = () => {
         if (this.webView.canGoBack && this.webView.ref) {
             this.webView.ref.goBack();
-            return true;
+        } else if(this.exitApp === undefined || !this.exitApp){
+            ToastAndroid.show('한 번 더 누르시면 종료됩니다.', ToastAndroid.SHORT);
+            this.exitApp = true;
+
+            this.timeout = setTimeout(
+                () => {
+                    this.exitApp = false;
+                }, 2000
+            );
+        } else {
+            clearTimeout(this.timeout);
+            BackHandler.exitApp();
         }
-        return false;
+        return true;
     }
 
     componentWillMount() {
-        console.log('HomeScreen componentWillMount()');
         if (Platform.OS === 'android') {
             BackHandler.addEventListener('hardwareBackPress', this.onAndroidBackPress);
         }
     }
 
     componentDidMount() {
-        console.log('HomeScreen componentDidMount()');
     }
 
     componentWillUnmount() {
-        console.log('HomeScreen componentWillUnmount()');
         if (Platform.OS === 'android') {
+            this.exitApp = false;
             BackHandler.removeEventListener('hardwareBackPress');
         }
     }
 
+    // popup
     goPopupScreen = (event) => {
-        const data = JSON.parse(event.nativeEvent.data);
-        // alert(data.url);
-        console.log('url : ', data.url);
-        this.props.navigation.navigate('Popup', {
-            url: data.url
-        });
+        const { url, type } = JSON.parse(event.nativeEvent.data);
+
+        if(type === 'NEW_POPUP'){
+            this.props.navigation.navigate('Popup', {
+                url: Server.getServerURL() + url,
+                onGoBack: this.refresh //callback
+            });
+        }
     };
+
+    // callback  string으로 넘어옴
+    refresh = (data) => {
+
+        console.log('HomeScreen : ',data)
+
+        const { url, param } = JSON.parse(data)
+
+        //페이지 Redirection
+        if(url){
+            const uri = {uri: Server.getServerURL() + url}
+
+            this.setState({
+                key: this.state.key+1,  //새로고침을 위해
+                source: uri
+            })
+
+        }else{
+            this.webView.ref.postMessage(data);
+        }
+
+    }
 
     render() {
         return (
             <View style={{flex: 1}}>
-                <WebView
-                    source={{uri: Server.getMainPage()}}
+                {Platform.select({
+                    android: () => <AndroidWebView
+                        //source={{ uri: 'https://mobilehtml5.org/ts/?id=23' }}
+                        key={this.state.key}
+                        source={this.state.source}
+                        ref={(webView) => {
+                            this.webView.ref = webView;
+                        }}
+                        onNavigationStateChange={(navState) => {
+                            this.webView.canGoBack = navState.canGoBack;
+                        }}
+                        // onMessage={(event) => this.goPopupScreen(event)}
+                        onMessage={this.goPopupScreen}
+                    />,
+                    ios:  () => <WebView
+                        //source={{ uri: 'https://mobilehtml5.org/ts/?id=23' }}
+                        key={this.state.key}
+                        source={this.state.source}
+                        ref={(webView) => {
+                            this.webView.ref = webView;
+                        }}
+                        onNavigationStateChange={(navState) => {
+                            this.webView.canGoBack = navState.canGoBack;
+                        }}
+                        // onMessage={(event) => this.goPopupScreen(event)}
+                        onMessage={this.goPopupScreen}
+                    />
+                })()}
+                {/*<WebView
+                    key={this.state.key}
+                    source={this.state.source}
                     ref={(webView) => {
                         this.webView.ref = webView;
                     }}
                     onNavigationStateChange={(navState) => {
                         this.webView.canGoBack = navState.canGoBack;
                     }}
-                    onMessage={(event) => this.goPopupScreen(event)}
-                />
+                    // onMessage={(event) => this.goPopupScreen(event)}
+                    onMessage={this.goPopupScreen}
+                />*/}
                 <BottomNavigation
                     onTabPress={newTab => this.sendInfoToWebView(newTab.key)}
                     renderTab={this.renderTab}

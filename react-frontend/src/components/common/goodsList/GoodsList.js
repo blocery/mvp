@@ -15,13 +15,13 @@ export default class GoodsList extends Component {
     render() {
         const data = this.props.data;
         return(
-            <Container>
+            <div>
             {
                 data.map((goods)=>{
                     return <Goods goods={goods} onClick={this.onClick} />
                 })
             }
-            </Container>
+            </div>
 
         )
     }

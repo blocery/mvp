@@ -1,5 +1,6 @@
 import React, { Fragment, Component } from 'react'
-import './GoodsDetail.scss'
+//import './GoodsDetail.scss'
+import Style from './GoodsDetail.module.scss'
 import { Button, Table, Container, Row, Col } from 'reactstrap'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faAngleLeft, faAngleRight, faShoppingCart, faCarrot, faAppleAlt, faCartPlus, faCartArrowDown, faStar, faStarHalf,
@@ -7,21 +8,26 @@ import { faAngleLeft, faAngleRight, faShoppingCart, faCarrot, faAppleAlt, faCart
 
 } from '@fortawesome/free-solid-svg-icons'
 import ComUtil from '../../../util/ComUtil'
-import { getGoods, getGoodsByGoodsNo } from '../../../lib/commonApi'
+import { getGoods, getGoodsByGoodsNo } from '../../../lib/goodsApi'
 import { getProducerByProducerNo } from '../../../lib/producerApi'
 
 import GoodsImage from './GoodsImage'
 
 import TabSection from './TabSection'
 
+import { FarmDiaryCard } from '../../common/cards'
+import { Server } from '../../../components/Properties'
 
-export default class Goods extends Component{
+import { Webview } from '../../../lib/webviewApi'
+
+export default class GoodsDetail extends Component{
     constructor(props){
         super(props)
         this.state = {
             loading: true,
             goods: {},
             producer: {},
+            farmDiaries: [],
             images: null
         }
     }
@@ -38,21 +44,52 @@ export default class Goods extends Component{
         const { data:goods } = await getGoodsByGoodsNo(goodsNo)
         console.log('goods:',goods)
         const { data:producer } = await getProducerByProducerNo(goods.producerNo)
-        console.log( {goods:goods,producer:producer})
+
+        //this.sortDesc(goods.cultivationDiaries)
+
+        const farmDiaries = this.getFilteredData(goods)
+
+        this.sortDesc(farmDiaries)
+
         this.setState({
             loading: false,
             goods: goods,
             producer: producer,
-            images: goods.goodsImages
+            images: goods.goodsImages,
+            farmDiaries: farmDiaries.splice(0, 3)   //3건만
         })
 
     }
+    //재배일지 등록일자 내림차순 정렬
+    sortDesc = (data) => {
+        data.sort((a,b)=>{
+            //return a.diaryRegDate < b.diaryRegDate ? -1 : a.diaryRegDate > b.diaryRegDate ? 1 : 0
+            return b.diaryRegDate - a.diaryRegDate
+        })
+    }
+    //goods 에서 card 에 바인딩 할 object 반환
+    getFilteredData = (goods) => {
+        const { goodsNo, goodsNm } = goods
+        const serverImageUrl = Server.getImageURL()
+        console.log('getFileterdData', goods)
+        return goods.cultivationDiaries.map((cultivationDiary)=>{
+            return {
+                goodsNo: goodsNo,
+                goodsNm: goodsNm,
+                imageUrl: serverImageUrl+cultivationDiary.diaryImages[0].imageUrl,
+                ...cultivationDiary
+            }
+        })
+    }
+
 
     onBuyClick = () => {
         const goodsNo = this.props.goodsNo;
         console.log(this.props)
         //TODO 팝엄창으로 변경
-        this.props.history.push('/buy?goodsNo=3'); //구매로 이동
+        // this.props.history.push('/buy?goodsNo=3'); //구매로 이동
+
+        Webview.openPopup('/buy?goodsNo=3') //구매로 이동
     }
 
     render(){
@@ -86,8 +123,8 @@ export default class Goods extends Component{
 
         const tabSectionData = [{name:'상품설명', active: true},
             {name:'구매안내', active: false},
-            {name:'재배일지(7)', active: false},
-            {name:'후기(19)', active: false}]
+            {name:'재배일지', active: false},
+            {name:'후기', active: false}]
 
         return(
             <Fragment>
@@ -96,38 +133,12 @@ export default class Goods extends Component{
                     goodsImages && <GoodsImage images={goodsImages} />
                 }
 
-                {/*/!* 상품이미지 *!/*/}
-                {/*<div>*/}
-                {/*/!* 상품이미지 *!/*/}
-                {/*<div className='container-goods-img'>*/}
-                {/*<img className='img-big' src={'http://localhost:8080/images/1a8mxPOk1gej.jpg'}/>*/}
-                {/*<div className='btn-back'><FontAwesomeIcon icon={faAngleLeft} size={'2x'} /></div>*/}
-                {/*<div className='btn-next'><FontAwesomeIcon icon={faAngleRight} size={'2x'} /></div>*/}
-                {/*</div>*/}
-
-                {/*/!* 상품 썸네일 *!/*/}
-                {/*<div className='container-goods-img-list'>*/}
-                {/*<img src={'http://localhost:8080/thumbnails/iYPH172GOXHb.jpeg'} />*/}
-                {/*<img src={'http://localhost:8080/thumbnails/iYPH172GOXHb.jpeg'} />*/}
-                {/*<img src={'http://localhost:8080/thumbnails/iYPH172GOXHb.jpeg'} />*/}
-                {/*<img src={'http://localhost:8080/thumbnails/ts9cgzVLshSK.jpg'} />*/}
-                {/*<img src={'http://localhost:8080/thumbnails/iYPH172GOXHb.jpeg'} />*/}
-                {/*<img src={'http://localhost:8080/thumbnails/ts9cgzVLshSK.jpg'} />*/}
-                {/*<img src={'http://localhost:8080/thumbnails/iYPH172GOXHb.jpeg'} />*/}
-                {/*<img src={'http://localhost:8080/thumbnails/iYPH172GOXHb.jpeg'} />*/}
-                {/*<img src={'http://localhost:8080/thumbnails/iYPH172GOXHb.jpeg'} />*/}
-                {/*<img src={'http://localhost:8080/thumbnails/iYPH172GOXHb.jpeg'} />*/}
-                {/*<img src={'http://localhost:8080/thumbnails/iYPH172GOXHb.jpeg'} />*/}
-                {/*<img src={'http://localhost:8080/thumbnails/iYPH172GOXHb.jpeg'} />*/}
-                {/*</div>*/}
-                {/*</div>*/}
-
                 {/* 상품정보 */}
-                <div className='container-goods'>
-                    <div className='share'>
+                <div className={Style.containerGoods}>
+                    <div className={Style.share}>
                         <FontAwesomeIcon icon={faShareAlt} color={'white'} size={'2x'}/>
                     </div>
-                    <h4>{goodsNm}</h4>
+                    <h4>{goodsNm} {packAmount}{packUnit}</h4>
                     <h5>{ComUtil.addCommas(reservationPrice)}원
                         <span className='text-danger'> {perSale}% </span>
                         <small>
@@ -145,7 +156,7 @@ export default class Goods extends Component{
                         <small> 1,345개구매</small>
                     </p>
 
-                    <div className='sharp-tag'>
+                    <div className={Style.sharpTag}>
                         #{searchTag}
                     </div>
                 </div>
@@ -171,36 +182,36 @@ export default class Goods extends Component{
                     <table>
                         <tbody>
                         <tr>
-                            <td className='title'>생산자</td>
+                            <td className={Style.title}>생산자</td>
                             <td>{name}</td>
-                            <td className='title'>생산지</td>
+                            <td className={Style.title}>생산지</td>
                             <td>{farmName}</td>
                         </tr>
                         <tr>
-                            <td className='title'>품목</td>
+                            <td className={Style.title}>품목</td>
                             <td>{itemNm}</td>
-                            <td className='title'>품종</td>
+                            <td className={Style.title}>품종</td>
                             <td>{breedNm}</td>
                         </tr>
                         <tr>
-                            <td className='title'>재배방법</td>
+                            <td className={Style.title}>재배방법</td>
                             <td>{cultivationNm}</td>
-                            <td className='title'>농약유무</td>
+                            <td className={Style.title}>농약유무</td>
                             <td>{pesticideYn}</td>
                         </tr>
                         <tr>
-                            <td className='title'>포장단위</td>
+                            <td className={Style.title}>포장단위</td>
                             <td>{packUnit}</td>
-                            <td className='title'>배송방법</td>
+                            <td className={Style.title}>배송방법</td>
                             <td>택배</td>
                         </tr>
                         <tr>
                             <td colSpan={2} className='title'>생산시작</td>
-                            <td colSpan={2}>{ComUtil.utcToString(productionStart)} ~ </td>
+                            <td colSpan={2}>{ComUtil.utcToString(productionStart)}</td>
                         </tr>
                         <tr>
                             <td colSpan={2} className='title'>출하기간(예상)</td>
-                            <td colSpan={2}>{ComUtil.utcToString(expectShippingStart)}</td>
+                            <td colSpan={2}>{ComUtil.utcToString(expectShippingStart)} ~ {ComUtil.utcToString(expectShippingEnd)}</td>
                         </tr>
                         </tbody>
                     </table>
@@ -212,7 +223,7 @@ export default class Goods extends Component{
 
 
                 {/* 상품설명 */}
-                <div className='container-goods-detail'>
+                <div className={Style.containerGoodsDetail}>
                     Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquam ultrices sagittis orci a scelerisque. Morbi tristique
                     Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquam ultrices sagittis orci a scelerisque. Morbi tristique
                     Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquam ultrices sagittis orci a scelerisque. Morbi tristique
@@ -228,7 +239,7 @@ export default class Goods extends Component{
 
 
                 { /* 구매안내 */ }
-                <div className='container-goods-purcase-info'>
+                <div className={Style.containerGoodsPurcaseInfo}>
                     Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquam ultrices sagittis orci a scelerisque. Morbi tristique
                     Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquam ultrices sagittis orci a scelerisque. Morbi tristique
                     Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquam ultrices sagittis orci a scelerisque. Morbi tristique
@@ -242,21 +253,18 @@ export default class Goods extends Component{
                 <TabSection items={tabSectionData} activeIndex={2}/>
 
                 { /* 재배일지 */ }
-                <div className='container-goods-farm-diary'>
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquam ultrices sagittis orci a scelerisque. Morbi tristique
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquam ultrices sagittis orci a scelerisque. Morbi tristique
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquam ultrices sagittis orci a scelerisque. Morbi tristique
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquam ultrices sagittis orci a scelerisque. Morbi tristique
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquam ultrices sagittis orci a scelerisque. Morbi tristique
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquam ultrices sagittis orci a scelerisque. Morbi tristique
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquam ultrices sagittis orci a scelerisque. Morbi tristique
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquam ultrices sagittis orci a scelerisque. Morbi tristique
+                <div className={Style.containerGoodsFarmDiary}>
+                    {
+                        this.state.farmDiaries.map((farmDiary, index)=>{
+                            return <FarmDiaryCard key={farmDiary.imageUrl + index} {...farmDiary} />
+                        })
+                    }
                 </div>
 
                 <TabSection items={tabSectionData} activeIndex={3}/>
 
                 { /* 후기 */ }
-                <div className='container-goods-review'>
+                <div className={Style.containerGoodsReview}>
                     Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquam ultrices sagittis orci a scelerisque. Morbi tristique
                     Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquam ultrices sagittis orci a scelerisque. Morbi tristique
                     Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquam ultrices sagittis orci a scelerisque. Morbi tristique
@@ -269,7 +277,7 @@ export default class Goods extends Component{
                 <br/>
                 <br/>
                 <br/>
-                <div className='buy'>
+                <div className={Style.buy}>
                     <div><Button color='info' block>장바구니</Button></div>
                     <div><Button color='warning' block onClick={this.onBuyClick}>즉시구매</Button></div>
                 </div>

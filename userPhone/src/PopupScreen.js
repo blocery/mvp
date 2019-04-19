@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, Button, WebView, BackHandler, Platform } from 'react-native';
-import BottomNavigation, {FullTab} from 'react-native-material-bottom-navigation';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-// 아이콘 검색 - https://fontawesome.com/icons?d=gallery
+import { Server } from './Properties';
+import AndroidWebView from 'react-native-webview-file-upload-android';
+
 
 export default class PopupScreen extends React.Component {
 
@@ -19,128 +19,36 @@ export default class PopupScreen extends React.Component {
     constructor(props) {
         super(props);
 
+        console.log('PopupScreen url : ' + this.props.navigation.getParam('url', 'default url'))
         this.state = {
-            url: null,
-
-            tabs : [
-                {
-                    key: 'home',
-                    icon: 'home-outline',
-                    label: 'Home',
-                    barColor: '#388E3C',
-                    pressColor: 'rgba(255,255,255,0.16)',
-                    defaultIcon: 'home-outline',
-                    selectedIcon: 'home'
-                },
-                {
-                    key: 'back',
-                    icon: 'arrow-left-bold-circle-outline',
-                    label: 'Back',
-                    barColor: '#388E3C',
-                    pressColor: 'rgba(255,255,255,0.16)',
-                    defaultIcon: 'arrow-left-bold-circle-outline',
-                    selectedIcon: 'arrow-left-bold-circle-outline'
-                },
-                {
-                    key: 'category',
-                    icon: 'animation-outline',
-                    label: 'Category',
-                    barColor: '#388E3C',
-                    pressColor: 'rgba(255,255,255,0.16)',
-                    defaultIcon: 'animation-outline',
-                    selectedIcon: 'animation'
-                },
-                {
-                    key: 'farmStory',
-                    icon: 'home-city-outline',
-                    label: 'MyFarmStory',
-                    barColor: '#388E3C',
-                    pressColor: 'rgba(255,255,255,0.16)',
-                    defaultIcon: 'home-city-outline',
-                    selectedIcon: 'home-city'
-                },
-                {
-                    key: 'myPage',
-                    icon: 'account-outline',
-                    label: 'My Page',
-                    barColor: '#388E3C',
-                    pressColor: 'rgba(255,255,255,0.16)',
-                    defaultIcon: 'account-outline',
-                    selectedIcon: 'account'
-                }
-            ]
+            url: this.props.navigation.getParam('url', 'default url'),
         };
     }
 
     componentWillMount() {
-        console.log('Popup componentWillMount()');
+        // console.log('Popup componentWillMount()');
         if (Platform.OS === 'android') {
             BackHandler.addEventListener('hardwareBackPress', this.onAndroidBackPress);
         }
     }
 
     componentDidMount() {
-        console.log('Popup componentDidMount()');
+        // console.log('Popup componentDidMount()');
 
-        const { navigation } = this.props;
-        const goUrl = navigation.getParam('url', 'default url'); //TODO default url 넣어야 함
-        console.log('url: ', goUrl);
-        this.setState({
-            url: goUrl
-        });
+        // const { navigation } = this.props;
+        // const goUrl = navigation.getParam('url', 'default url'); //TODO default url 넣어야 함
+        // // console.log('url: ', goUrl);
+        // this.setState({
+        //     url: goUrl
+        // });
     }
 
     componentWillUnmount() {
-        console.log('Popup componentWillUnmount()');
+        // console.log('Popup componentWillUnmount()');
         if (Platform.OS === 'android') {
             BackHandler.removeEventListener('hardwareBackPress');
         }
     }
-
-    renderIcon = icon => ({ isActive }) => (
-        <Icon size={24} color='white' name={icon} />
-    )
-
-    renderTab = ({ tab, isActive }) => (
-        <FullTab
-            isActive={isActive}
-            key={tab.key}
-            label={tab.label}
-            renderIcon={this.renderIcon(tab.icon)}
-        />
-    )
-
-    changeIcon = (key) => {
-        const state = Object.assign({}, this.state)
-        state.tabs[0].icon = state.tabs[0].defaultIcon;
-        state.tabs[1].icon = state.tabs[1].defaultIcon;
-        state.tabs[2].icon = state.tabs[2].defaultIcon;
-        state.tabs[3].icon = state.tabs[3].defaultIcon;
-        state.tabs[4].icon = state.tabs[4].defaultIcon;
-
-        switch(key) {
-            case 'home' :
-                state.tabs[0].icon = state.tabs[0].selectedIcon;
-                break;
-
-            case 'back' :
-                state.tabs[1].icon = state.tabs[1].selectedIcon;
-                break;
-
-            case 'category' :
-                state.tabs[2].icon = state.tabs[2].selectedIcon;
-                break;
-
-            case 'farmStory' :
-                state.tabs[3].icon = state.tabs[3].selectedIcon;
-                break;
-
-            case 'myPage' :
-                state.tabs[4].icon = state.tabs[4].selectedIcon;
-                break;
-        }
-        this.setState(state)
-    };
 
     onAndroidBackPress = () => {
         if (this.webView.canGoBack && this.webView.ref) {
@@ -150,24 +58,57 @@ export default class PopupScreen extends React.Component {
         return false;
     };
 
-    sendInfoToWebView = (key) => {
+    onMessage = (event) => {
+        console.log('PopupScreen : ',event.nativeEvent.data)
 
-        const data = JSON.stringify({tab: key});
-        this.webView.ref.postMessage(data);
+        const { url, type, param } = JSON.parse(event.nativeEvent.data)
 
-        switch(key) {
-            case 'back' :
-                // TODO navigation back과 webView의 back을 어떻게 같이  쓰지?? webView에서 postMessage로 back이 없음을 알려줘야 하나?
-                this.props.navigation.goBack();
-                break;
+        if(type === 'NEW_POPUP') {
+
+            this.props.navigation.push('Popup', {
+                url: Server.getServerURL() + url,
+                onGoBack: this.refresh
+            })
+        }else if(type === 'CLOSE_POPUP'){
+            this.props.navigation.state.params.onGoBack(event.nativeEvent.data); //callback
+            this.props.navigation.goBack(); //창 닫기
         }
+    }
+
+    // callback  string으로 넘어옴
+    refresh = (data) => {
+        console.log('PopupScreen refresh : ')
+        this.webView.ref.postMessage(data);
     }
 
     render() {
 
         return (
             <View style={{flex: 1}}>
+                {Platform.select({
+                    android: () => <AndroidWebView
+                        source={{uri: this.state.url}}
+                        ref={(webView) => {
+                            this.webView.ref = webView;
+                        }}
+                        onNavigationStateChange={(navState) => {
+                            this.webView.canGoBack = navState.canGoBack;
+                        }}
+                        onMessage={(event) => this.onMessage(event)}
+                    />,
+                    ios: () => <WebView
+                        source={{uri: this.state.url}}
+                        ref={(webView) => {
+                            this.webView.ref = webView;
+                        }}
+                        onNavigationStateChange={(navState) => {
+                            this.webView.canGoBack = navState.canGoBack;
+                        }}
+                        onMessage={(event) => this.onMessage(event)}
+                    />
+                })()}
 
+                {/*
                 <WebView
                     source={{uri: this.state.url}}
                     ref={(webView) => {
@@ -176,12 +117,9 @@ export default class PopupScreen extends React.Component {
                     onNavigationStateChange={(navState) => {
                         this.webView.canGoBack = navState.canGoBack;
                     }}
+                    onMessage={(event) => this.onMessage(event)}
                 />
-                <BottomNavigation
-                    onTabPress={newTab => this.sendInfoToWebView(newTab.key)}
-                    renderTab={this.renderTab}
-                    tabs={this.state.tabs}
-                />
+                */}
             </View>
             /*
             const { navigation } = this.props;

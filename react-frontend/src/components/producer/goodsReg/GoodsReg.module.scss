@@ -3,15 +3,8 @@
   position: relative;
 }
 
-.addon{
-  min-width: 100px;
-  & > span{
-    min-width: 100px;
-  }
-}
-
 .success{
-  color: $color-info;
+  //color: $color-info;
 }
 
 .footer{

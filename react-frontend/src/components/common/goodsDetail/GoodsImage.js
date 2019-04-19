@@ -8,8 +8,7 @@ import { faAngleLeft, faAngleRight, faShoppingCart, faCarrot, faAppleAlt, faCart
 import _ from 'lodash'
 import GoodsThumbnail from './GoodsThumbnail'
 import {Server} from '../../Properties'
-
-//const imageUrl = 'http://localhost:8080/images/'
+import Style from './GoodsDetail.module.scss'
 
 export default class GoodsImage extends Component{
     constructor(props){
@@ -20,6 +19,10 @@ export default class GoodsImage extends Component{
             selectedImageNo: this.props.images[0].imageNo,
             images: this.props.images
         }
+    }
+
+    componentDidMount() {
+        console.log(this.props)
     }
     onBackClicked = () => {
        this.setImage(this.decreaseIndex())
@@ -62,10 +65,10 @@ export default class GoodsImage extends Component{
         return(
             <Fragment>
 
-                <div className='container-goods-img'>
-                    <img className='img-big' src={src}/>
-                    <div className='btn-back' onClick={this.onBackClicked}><FontAwesomeIcon icon={faAngleLeft} size={'2x'} /></div>
-                    <div className='btn-next' onClick={this.onNextClicked}><FontAwesomeIcon icon={faAngleRight} size={'2x'} /></div>
+                <div className={Style.containerGoodsImg}>
+                    <img className={Style.imgBig} src={src}/>
+                    <div className={Style.btnBack} onClick={this.onBackClicked}><FontAwesomeIcon icon={faAngleLeft} size={'2x'} /></div>
+                    <div className={Style.btnNext} onClick={this.onNextClicked}><FontAwesomeIcon icon={faAngleRight} size={'2x'} /></div>
                 </div>
 
                 <GoodsThumbnail selectedIndex={this.state.selectedIndex} images={this.state.images} onClick={this.onThumbnailClicked} />

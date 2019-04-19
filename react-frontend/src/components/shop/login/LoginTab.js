@@ -5,6 +5,7 @@ import { Container, InputGroup, InputGroupAddon, InputGroupText, Input, Form, Ro
 import { Link } from 'react-router-dom'
 import { TabContent, TabPane, Nav, NavItem, NavLink} from 'reactstrap'
 import classnames from 'classnames'
+import {Webview} from "../../../lib/webviewApi";
 
 //Tab제목
 const TabTitle = (props) => {
@@ -62,7 +63,8 @@ export default class LoginTab extends Component {
             fadeEmail: false, //email 미입력시 에러메시지 여부
             fadeEmailType: false,
             fadePassword: false,
-            fadeError: false   //email or pw 가 서버에 없을때 에러메시지 여부
+            fadeError: false,   //email or pw 가 서버에 없을때 에러메시지 여부
+            autoLogin: false
         }
     }
 
@@ -119,14 +121,17 @@ export default class LoginTab extends Component {
                     let loginInfo = response.data;
 
                     //쿠키(localStorage)에 login된 userType저장. - 필요하려나.
-                    localStorage.setItem('loginUserType', loginInfo.userType);
+                    localStorage.setItem('userType', data.userType);
                     localStorage.setItem('account', loginInfo.account); //geth Account
+                    localStorage.setItem('email', data.email);
+                    localStorage.setItem('valword', data.valword);
+                    localStorage.setItem('autoLogin', this.state.autoLogin);
 
                     console.log('loginInfo : ===========================',loginInfo)
 
                     //TODO webView2를 닫는 방식 필요.
+                    //Webview.closePopup('/');  //사용 예정.
                     this.props.history.push('/'); //임시로 메인으로 이동
-                    //window.location = this.targetLocation;  //LeftBar등이 초기화됨
                 }
             })
             .catch(function (error) {
@@ -138,6 +143,12 @@ export default class LoginTab extends Component {
         //this.props.history.push('/')
     }
 
+    autoLoginCheck = (e) => {
+        let autoLoginFlag = e.target.checked;
+        console.log('autoLoginFlag:' + autoLoginFlag);
+
+        this.setState({autoLogin:autoLoginFlag});
+    }
     //아이디 찾기
     onIdSearchClick = () => {
         console.log('not implemented');
@@ -239,9 +250,8 @@ export default class LoginTab extends Component {
                     </Row>
                     <Row>
                         <Col xs={4}>
-                            <FormGroup check> {/* TODO */}
-
-                                <Input type="checkbox" name="check" id="autoLogin"/>
+                            <FormGroup check>
+                                <Input type="checkbox" name="check" id="autoLogin" onChange={this.autoLoginCheck}/>
                                 <Label for="autoLogin" check> 자동로그인 </Label>
                             </FormGroup>
                         </Col>

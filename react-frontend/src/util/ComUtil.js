@@ -1,5 +1,6 @@
 import moment from 'moment-timezone'
 import Compressor from 'compressorjs'
+import queryString from 'query-string'
 
 export default class ComUtil {
 
@@ -47,6 +48,7 @@ export default class ComUtil {
         const utcDate = moment(utcTime);
         return utcDate.tz(moment.tz.guess()).format(format)
 
+        /*
         var d = new Date(utcTime);
 
         // UTC version of the date
@@ -57,6 +59,7 @@ export default class ComUtil {
         let minUTC = this.zeroPad(d.getUTCMinutes());
 
         return yyyy + '-' + mmUTC + '-' + ddUTC + ' ' + hhUTC + ':' + minUTC;
+        */
     }
 
     /*******************************************************
@@ -67,6 +70,13 @@ export default class ComUtil {
     static zeroPad(number) {
         if (number < 10) return '0' + number;
         else return number;
+    }
+
+    /**
+     * 현재시간을 UTCTime으로 가져오기
+     */
+    static getNow() {
+        return new Date().getTime();
     }
 
     /*******************************************************
@@ -129,6 +139,80 @@ export default class ComUtil {
         return date.substring(5,7) + '/' + date.substring(8,10) + '(' + dayOfWeek + ')';
     }
 
+    /*******************************************************
+     밸리데이션용 함수(밸리데이션 체크에 걸렸을 경우 alert()을 띄워주며 걸린 키와 함께 결과값을 반환 합니다)
+     @Param : 검증할 object, 밸리데이션 체크 해야할 키 Array(key, msg)
+     @Return : {result: true or false, inavlidKey: '밸리데이션 체크에 걸린 키'}
+     @Usage :
+
+        const data = {name:'jaden', age: null, cell: '010-6679-0080'};
+
+        const validArr = [
+                 {key: 'name', msg: '성명'},
+                 {key: 'age', msg: '나이'}
+             ]
+
+        validate(data, validArr)
+     *******************************************************/
+    static validate(data, validationArr) {
+
+        let invalidKey;
+        let result = true;
+
+        for (let i = 0; i < validationArr.length; i++) {
+            const vObj = validationArr[i];
+            const key = vObj.key;
+
+            console.log(key in data);
+
+            if (key in data == false) {
+                console.log(`${key} 는 data 필드에 에 없습니다.`);
+                invalidKey = key;
+                result = false;
+                break;
+            }
+
+            const value = data[key];
+
+            if (!value) {
+                alert(vObj.msg + '를 입력해 주세요');
+                invalidKey = key;
+                result = false;
+                break;
+            }
+
+            let type = typeof value;
+
+            if (type === 'string') {
+                if (value.length <= 0) {
+                    alert(vObj.msg + '를 입력해 주세요')
+                    invalidKey = key;
+                    result = false;
+                    break;
+                }
+            }
+            else if (type === 'number') {
+                if (value <= 0) {
+                    alert(vObj.msg + '를 입력해 주세요')
+                    invalidKey = key;
+                    result = false;
+                    break;
+                }
+            }
+            else if (type === 'object') {
+                if (Array.isArray(value)) {
+                    if (value.length <= 0) {
+                        alert(vObj.msg + '를 입력해 주세요')
+                        invalidKey = key;
+                        result = false;
+                        break;
+                    }
+
+                }
+            }
+        }
+        return {result: result, inavlidKey: invalidKey};
+    }
 
     /*******************************************************
      오브젝트의 attribute들의 value들을 copy,
@@ -141,5 +225,47 @@ export default class ComUtil {
                 target[key] = source[key];  //value만 copty
             }
         }
+    }
+
+    /*******************************************************
+     email 확인 정규식(ㅁㅁㅁ@ㅁㅁㅁ.co.kr/com 형식)
+     @Param : (string)
+     @Return : true/false
+     *******************************************************/
+    static emailRegex(email) {
+        var emailRule = /^[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}$/i;
+
+        return emailRule.test(email)
+    }
+
+    /*******************************************************
+     valword 형식 확인 정규식(8~16자 영대소문자, 숫자, 특수문자 포함)
+     @Param : (string)
+     @Return : true/false
+     *******************************************************/
+    static valwordRegex(valword) {
+        var valRule = /^.*(?=^.{8,16}$)(?=.*\d)(?=.*[a-zA-Z])(?=.*[!@#$%^&+=]).*$/;
+
+        return valRule.test(valword)
+    }
+
+    /*******************************************************
+     숫자만 입력 정규식
+     @Param : Number
+     @Return : true/false
+     *******************************************************/
+    static onlyNumber(number) {
+        var onlyNumber = /[^0-9]/g;
+
+        return !onlyNumber.test(number)
+    }
+
+    /*******************************************************
+     쿼리스트링을 파상하여 object 로 반환
+     @Param : props
+     @Return : object
+     *******************************************************/
+    static getParams(props) {
+        return queryString.parse(props.location.search)
     }
 }

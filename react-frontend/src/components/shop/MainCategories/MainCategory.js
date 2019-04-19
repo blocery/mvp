@@ -14,7 +14,7 @@ export default class MainCategory extends Component {
         <Container>
             <Row>
                 <Col xs={'3'}><RouterLink to={'/main/recommend'} activeClassName={this.state.activeClassName}>오늘의추천</RouterLink></Col>
-                <Col xs={'3'}><RouterLink to={'/main/resv'} activeClassName={this.state.activeClassName} >예약판매</RouterLink></Col>
+                <Col xs={'3'}><RouterLink to={'/main/resv'} activeClassName={this.state.activeClassName} >예약구매</RouterLink></Col>
                 <Col xs={'3'}><RouterLink to={'/main/farmDiary'} activeClassName={this.state.activeClassName} >재배일지</RouterLink></Col>
                 <Col xs={'3'}><RouterLink to={'/main/transGoods'} activeClassName={this.state.activeClassName} >양도거래소</RouterLink></Col>
             </Row>

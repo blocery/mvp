@@ -1,12 +1,12 @@
 import React from 'react'
 import {Server} from '../../Properties'
-
+import Style from './GoodsDetail.module.scss'
 const GoodsThumbnail = (props) => {
 
     //const thumbnailUrl = 'http://localhost:8080/thumbnails/'
 
     return (
-        <div className='container-goods-img-list'>
+        <div className={Style.containerGoodsImgList}>
             {
                 props.images.map(({imageNo, imageNm, imageUrl}, index)=>{
                     return(
@@ -14,7 +14,7 @@ const GoodsThumbnail = (props) => {
                         key={'thumbnail_'+imageUrl}
                         id={imageNo}
                         src={Server.getThumbnailURL() +imageUrl}
-                        className={props.selectedIndex === index ? 'active' : ''}
+                        className={props.selectedIndex === index ? Style.active : ''}
                         onClick={props.onClick}
                     />
                     )
