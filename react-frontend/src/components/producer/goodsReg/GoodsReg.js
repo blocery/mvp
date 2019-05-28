@@ -2,7 +2,7 @@ import TokenGethSC from '../../../contracts/TokenGethSC';
 import React, { Component, Fragment } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Container, Input, FormGroup, Label, Button, Fade, FormFeedback, Badge} from 'reactstrap'
-import { RadioButtons, ImageUploader } from '../../common'
+import { RadioButtons, ImageUploader, ModalConfirmButton, ProducerFullModalPopupWithNav } from '../../common'
 import DatePicker from 'react-date-picker'
 import Style from './GoodsReg.module.scss'
 
@@ -12,20 +12,25 @@ import { exchangeWon2BLCT } from '../../../lib/exchangeApi';
 import { getProducerByProducerNo } from '../../../lib/producerApi';
 import { getGoodsByGoodsNo } from '../../../lib/goodsApi';
 import { getLoginUser } from '../../../lib/loginApi';
+import Goods from '../../../components/shop/goods/Goods'
 
 import { ToastContainer, toast } from 'react-toastify'                              //토스트
 import 'react-toastify/dist/ReactToastify.css'
 import {Webview} from "../../../lib/webviewApi";
 import ComUtil from '../../../util/ComUtil'
+import ProducerXButtonNav from "../../common/navs/ProducerXButtonNav";
+
 export default class GoodsReg extends Component {
     constructor(props) {
         super(props);
 
         // this.toggle = this.toggle.bind(this);
 
-        const { goodsNo } = ComUtil.getParams(this.props)
+        // const { goodsNo } = ComUtil.getParams(this.props)
+        const goodsNo = this.props.goodsNo || null
 
         this.state = {
+            isOpen: false,
             // dropdownOpen: false,
             bindData:{
                 cultivationNm: null,//재배방법
@@ -34,31 +39,11 @@ export default class GoodsReg extends Component {
                 packUnit: null,     //포장단위
             },
 
-            //input name에 사용
-            names: {
-                goodsNm: 'goodsNm',              //상품명
-                // goodsImages: 'goodsImages',	        //상품이미지
-                searchTag: 'searchTag',	        //태그
-                itemNo: 'itemNo',	            //품목번호
-                // itemNm: 'itemNm',	            //품목
-                breedNm: 'breedNm',	                //품종
-                productionArea: 'productionArea',	//생산지
-                // cultivationNm: 'cultivationNm',	    //재배방법명
-                productionStart: 'productionStart',      //생산시작일
-                expectShippingStart: 'expectShippingStart',  //예상출하시작일
-                expectShippingEnd: 'expectShippingEnd',    //예상출하마감일
-                // pesticideYn: 'pesticideYn',	        //농약유무
-                // packUnit: 'packUnit',	            //포장단위
-                packAmount: 'packAmount',	        //포장 양
-                packCnt: 'packCnt',	            //판매개수
-                shipPrice: 'shipPrice',	        //출하 후 판매가
-                reservationPrice: 'reservationPrice',	    //예약 시 판매가
-            },
 
             //등록시 사용
             goods: {
                 goodsNo: goodsNo || null,
-                producerNo: 0,          //생산자번호
+                producerNo: null,          //생산자번호
                 goodsNm: '',              //상품명
                 goodsImages: [],	        //상품이미지
                 searchTag: '',	        //태그
@@ -68,6 +53,7 @@ export default class GoodsReg extends Component {
                 productionArea: '',	    //생산지
                 //cultivationNo: '',	    //재배방법번호
                 cultivationNm: '',	    //재배방법명
+                saleEnd: '',                //판매마감일
                 productionStart: '',      //생산시작일
                 expectShippingStart: '',  //예상출하시작일
                 expectShippingEnd: '',    //예상출하마감일
@@ -82,13 +68,15 @@ export default class GoodsReg extends Component {
                 contentImages: [],          //상품설명 이미지
                 totalDeposit: 0,
                 remainedDeposit: 0,
-                remainedCnt: 0
+                remainedCnt: 0,
+                discountRate: 0,            //할인율
             },
 
             //밸리데이션 체크 검증
             isValidated: {
                 goodsNm: false,
                 breedNm: false,
+                saleEnd: false,              //판매마감일
                 productionStart: false,      //생산시작일
                 expectShippingStart: false,  //예상출하시작일
                 expectShippingEnd: false,    //예상출하마감일
@@ -102,8 +90,30 @@ export default class GoodsReg extends Component {
 
             loginUser: {},
 
-            // validationCnt: 0
+
         }
+    }
+
+    //input name에 사용
+    names = {
+        goodsNm: 'goodsNm',              //상품명
+        // goodsImages: 'goodsImages',	        //상품이미지
+        searchTag: 'searchTag',	        //태그
+        itemNo: 'itemNo',	            //품목번호
+        // itemNm: 'itemNm',	            //품목
+        breedNm: 'breedNm',	                //품종
+        productionArea: 'productionArea',	//생산지
+        // cultivationNm: 'cultivationNm',	    //재배방법명
+        saleEnd: 'saleEnd',                     //판매마감일
+        productionStart: 'productionStart',      //생산시작일
+        expectShippingStart: 'expectShippingStart',  //예상출하시작일
+        expectShippingEnd: 'expectShippingEnd',    //예상출하마감일
+        // pesticideYn: 'pesticideYn',	        //농약유무
+        // packUnit: 'packUnit',	            //포장단위
+        packAmount: 'packAmount',	        //포장 양
+        packCnt: 'packCnt',	            //판매개수
+        shipPrice: 'shipPrice',	        //출하 후 판매가
+        reservationPrice: 'reservationPrice',	    //예약 시 판매가
     }
 
     componentWillMount() {
@@ -115,7 +125,7 @@ export default class GoodsReg extends Component {
         this.bind()
 
 
-        // await this.setLoginUserInfo();
+        this.setLoginUserInfo();
     }
 
     setLoginUserInfo = async() => {
@@ -136,12 +146,12 @@ export default class GoodsReg extends Component {
     bind = async () => {
         //품목
         const item = [
-            {itemNm:'상추', itemNo:1},
-            {itemNm:'배추', itemNo:2},
-            {itemNm:'양파', itemNo:3},
-            {itemNm:'고추', itemNo:4},
-            {itemNm:'사과', itemNo:5},
-            {itemNm:'오이', itemNo:6},
+            {itemNm:'청경채', itemNo:1},
+            {itemNm:'시금치', itemNo:2},
+            {itemNm:'고수', itemNo:3},
+            {itemNm:'비트(근대)', itemNo:4},
+            {itemNm:'바질', itemNo:5},
+            {itemNm:'상추', itemNo:6},
         ]
 
         //재배방법
@@ -276,49 +286,59 @@ export default class GoodsReg extends Component {
             this.notify('상품명은 필수 입니다', toast.error)
             return
         }
+
+
         this.save(goods)
 
     }
 
     //상품노출
-    onAddGoodsClick = async (e) => {
+    onAddGoodsClick = async (isConfirm, e) => {
 
-        if(!this.canConfirm()){
-            this.notify('필수입력이 모두 되어야 노출 가능힙니다', toast.error)
-            return
-        }
+        // if(!this.canConfirm()){
+        //     this.notify('필수입력이 모두 되어야 노출 가능힙니다', toast.error)
+        //     return
+        // }
 
-        if(window.confirm(['상품을 등록 하시겠습니까? 앞으로 수정 및 삭제가 불가능 합니다!'])){
+        // if(window.confirm(['상품을 등록 하시겠습니까? 앞으로 수정 및 삭제가 불가능 합니다!'])){
 
-            // 위약금 토큰 납부
-            let saveContract = true;
-            let depositToken = exchangeWon2BLCT(this.state.goods.totalDeposit);
+        if(!isConfirm) return
 
-            // let loginInfo = await getLoginUser();
-            let producer = await getProducerByProducerNo(this.state.loginUser.uniqueNo);
-            if(producer.data.selfDeposit) {
-                let balance = await getBalanceOf(this.tokenGethSC, this.state.loginUser.account);
-                if(balance < depositToken) {
-                    // TODO 토큰 구매페이지 이동 필요
-                    saveContract = false;
-                    alert('토큰이 부족합니다. 토큰울 추가구입하세요');
-                }
-            }
+        // 위약금 토큰 납부
+        let saveContract = true;
+        let depositToken = exchangeWon2BLCT(this.state.goods.totalDeposit);
 
-            if(saveContract) {
-                // TODO 토큰지급이 실패하면 어떻게 해야할지 대책 필요함. (이미 UI에는 수정 불가 안내메시지가 노출되었음)
-                this.payDepositToken(producer.data.selfDeposit, depositToken);
-
-                const goods = Object.assign({}, this.state.goods)
-                goods.confirm = true //상품목록에 노출
-                this.save(goods)
+        // let loginInfo = await getLoginUser();
+        let producer = await getProducerByProducerNo(this.state.loginUser.uniqueNo);
+        if(producer.data.selfDeposit) {
+            let balance = await getBalanceOf(this.tokenGethSC, this.state.loginUser.account);
+            if(balance < depositToken) {
+                // TODO 토큰 구매페이지 이동 필요
+                saveContract = false;
+                alert('토큰이 부족합니다. 토큰추가구매는 베타버전에서 제공예정입니다.');
             }
         }
+
+        if(saveContract) {
+            // TODO 토큰지급이 실패하면 어떻게 해야할지 대책 필요함. (이미 UI에는 수정 불가 안내메시지가 노출되었음)
+            this.payDepositToken(producer.data.selfDeposit, depositToken);
+
+            const goods = Object.assign({}, this.state.goods)
+            goods.confirm = true //상품목록에 노출
+            console.log(goods)
+            this.save(goods)
+        }
+        // }
     }
-
+    getDiscountRate = (goods) => {
+        return (100 - ((goods.reservationPrice / goods.shipPrice) * 100)) || 0
+    }
 
     //저장
     save = async (goods) => {
+
+        goods.discountRate = this.getDiscountRate(goods)    //할인율 계산
+
         //위약금 remainedCnt추가
         //TODO 위약금 계산로직 개선필요 - 현재는 그냥 비례식
         goods.totalDeposit = goods.shipPrice * goods.packCnt * 0.2;
@@ -379,6 +399,24 @@ export default class GoodsReg extends Component {
             //className: ''     //클래스를 넣어도 됩니다
         })
     }
+
+    onConfirm = (isConfirm) => {
+        if(isConfirm)
+            this.onAddGoodsClick()
+    }
+    //미리보기
+    onPreviewClick = () => {
+        this.toggle()
+    }
+    //만약 모달 창 닫기를 강제로 하려면 아래처럼 넘기면 됩니다
+    onPreviewClose = () => {
+        this.toggle()
+    }
+    toggle = () => {
+        this.setState({
+            isOpen: !this.state.isOpen
+        })
+    }
     render() {
 
         const {
@@ -387,6 +425,7 @@ export default class GoodsReg extends Component {
             searchTag,	        //태그
             breedNm,	            //품종
             productionArea,	    //생산지
+            saleEnd,              //판매마감일
             productionStart,      //생산시작일
             expectShippingStart,  //예상출하시작일
             expectShippingEnd,    //예상출하마감일
@@ -404,6 +443,7 @@ export default class GoodsReg extends Component {
 
         return(
             <div className={Style.wrap}>
+                {/*<ProducerXButtonNav name={'상품등록'} onClose={this.props.onClose}/>*/}
                 {
                     this.state.validationCnt > 0 && (
                         <div className={Style.badge}>
@@ -416,6 +456,7 @@ export default class GoodsReg extends Component {
                 {/*<NavLink className={'text-info'} to={'/producer/goodsReg'} >상품등록</NavLink>*/}
                 {/*<NavLink className={'text-info'} to={'/producer/orderList'} >주문목록</NavLink>*/}
                 {/*</div>*/}
+
                 <Container fluid>
                     <FormGroup>
                         <Label>대표상품 이미지</Label>
@@ -431,13 +472,13 @@ export default class GoodsReg extends Component {
                     <hr/>
                     <FormGroup>
                         <Label>상품명{star}</Label>
-                        <Input valid={this.state.isValidated.goodsNm} invalid={!this.state.isValidated.goodsNm} name={this.state.names.goodsNm} value={goodsNm} onChange={this.onInputChange} />
+                        <Input valid={this.state.isValidated.goodsNm} invalid={!this.state.isValidated.goodsNm} name={this.names.goodsNm} value={goodsNm} onChange={this.onInputChange} />
                         <FormFeedback invalid>필수 입력값입니다</FormFeedback>
                         {/*<FormFeedback valid>성공!</FormFeedback>*/}
                     </FormGroup>
                     <FormGroup>
                         <Label>태그</Label>
-                        <Input name={this.state.names.searchTag} value={searchTag} onChange={this.onInputChange}/>
+                        <Input name={this.names.searchTag} value={searchTag} onChange={this.onInputChange}/>
                     </FormGroup>
                     <FormGroup>
                         <Label>품목{star}</Label>
@@ -450,7 +491,7 @@ export default class GoodsReg extends Component {
                     </FormGroup>
                     <FormGroup>
                         <Label>생산지{star}</Label>
-                        <Input valid={this.state.isValidated.productionArea} invalid={!this.state.isValidated.productionArea} name={this.state.names.productionArea} value={productionArea} placeholder='ex)전남 여수' onChange={this.onInputChange} />
+                        <Input valid={this.state.isValidated.productionArea} invalid={!this.state.isValidated.productionArea} name={this.names.productionArea} value={productionArea} placeholder='ex)전남 여수' onChange={this.onInputChange} />
                         <FormFeedback invalid>필수 입력값입니다</FormFeedback>
                         {/*<FormFeedback valid>성공!</FormFeedback>*/}
                     </FormGroup>
@@ -459,10 +500,21 @@ export default class GoodsReg extends Component {
                         <RadioButtons nameField='cultivationNm' defaultIndex={0} data={this.state.bindData.cultivationNm || []} onClick={this.onCultivationNmClick} />
                     </FormGroup>
                     <FormGroup>
+                        <Label>판매마감일{star}</Label>
+                        <div>
+                            <DatePicker
+                                onChange={this.onCalendarChange.bind(this, this.names.saleEnd)}
+                                value={saleEnd}
+                            />
+                            <FormFeedback invalid>필수 입력값입니다</FormFeedback>
+                            { <Fade in={!this.state.goods.saleEnd} className="text-danger">날짜는 필수입니다</Fade> }
+                        </div>
+                    </FormGroup>
+                    <FormGroup>
                         <Label>생산시작일{star}</Label>
                         <div>
                             <DatePicker
-                                onChange={this.onCalendarChange.bind(this, this.state.names.productionStart)}
+                                onChange={this.onCalendarChange.bind(this, this.names.productionStart)}
                                 value={productionStart}
                             />
                             <FormFeedback invalid>필수 입력값입니다</FormFeedback>
@@ -473,7 +525,7 @@ export default class GoodsReg extends Component {
                         <Label>예상출하시작일{star}</Label>
                         <div>
                             <DatePicker
-                                onChange={this.onCalendarChange.bind(this, this.state.names.expectShippingStart)}
+                                onChange={this.onCalendarChange.bind(this, this.names.expectShippingStart)}
                                 value={expectShippingStart}
                             />
                             { <Fade in={!this.state.goods.expectShippingStart} className="text-danger">날짜는 필수입니다</Fade> }
@@ -483,7 +535,7 @@ export default class GoodsReg extends Component {
                         <Label>예상출하마감일{star}</Label>
                         <div>
                             <DatePicker
-                                onChange={this.onCalendarChange.bind(this, this.state.names.expectShippingEnd)}
+                                onChange={this.onCalendarChange.bind(this, this.names.expectShippingEnd)}
                                 value={expectShippingEnd}
                             />
                             { <Fade in={!this.state.goods.expectShippingEnd} className="text-danger">날짜는 필수입니다</Fade> }
@@ -499,25 +551,25 @@ export default class GoodsReg extends Component {
                     </FormGroup>
                     <FormGroup>
                         <Label>포장 양{star}</Label>
-                        <Input valid={this.state.isValidated.packAmount} invalid={!this.state.isValidated.packAmount} name={this.state.names.packAmount} value={packAmount} onChange={this.onInputChange} type={'number'}/>
+                        <Input valid={this.state.isValidated.packAmount} invalid={!this.state.isValidated.packAmount} name={this.names.packAmount} value={packAmount} onChange={this.onInputChange} type={'number'}/>
                         <FormFeedback invalid>필수(숫자) 입력값입니다</FormFeedback>
                         {/*<FormFeedback valid>성공!</FormFeedback>*/}
                     </FormGroup>
                     <FormGroup>
                         <Label>판매개수{star}</Label>
-                        <Input valid={this.state.isValidated.packCnt} invalid={!this.state.isValidated.packCnt} name={this.state.names.packCnt} value={packCnt} onChange={this.onInputChange} type={'number'}/>
+                        <Input valid={this.state.isValidated.packCnt} invalid={!this.state.isValidated.packCnt} name={this.names.packCnt} value={packCnt} onChange={this.onInputChange} type={'number'}/>
                         <FormFeedback invalid>필수(숫자) 입력값입니다</FormFeedback>
                         {/*<FormFeedback valid>성공!</FormFeedback>*/}
                     </FormGroup>
                     <FormGroup>
                         <Label>예약 시 판매가{star}</Label>
-                        <Input valid={this.state.isValidated.reservationPrice} invalid={!this.state.isValidated.reservationPrice} name={this.state.names.reservationPrice} value={reservationPrice} onChange={this.onInputChange} type={'number'}/>
+                        <Input valid={this.state.isValidated.reservationPrice} invalid={!this.state.isValidated.reservationPrice} name={this.names.reservationPrice} value={reservationPrice} onChange={this.onInputChange} type={'number'}/>
                         <FormFeedback invalid>필수(숫자) 입력값입니다</FormFeedback>
                         {/*<FormFeedback valid>성공!</FormFeedback>*/}
                     </FormGroup>
                     <FormGroup>
                         <Label>출하 후 판매가{star}</Label>
-                        <Input valid={this.state.isValidated.shipPrice} invalid={!this.state.isValidated.shipPrice} name={this.state.names.shipPrice} value={shipPrice} onChange={this.onInputChange} type={'number'}/>
+                        <Input valid={this.state.isValidated.shipPrice} invalid={!this.state.isValidated.shipPrice} name={this.names.shipPrice} value={shipPrice} onChange={this.onInputChange} type={'number'}/>
                         <FormFeedback invalid>필수(숫자) 입력값입니다</FormFeedback>
                         {/*<FormFeedback valid>성공!</FormFeedback>*/}
                     </FormGroup>
@@ -532,13 +584,20 @@ export default class GoodsReg extends Component {
                         !this.state.goods.confirm && <Button onClick={this.onAddTempGoodsClick} color='warning'>상품저장</Button>
                     }
                     {
-                        this.state.goods.goodsNo && !this.state.goods.confirm && <Button onClick={this.onAddGoodsClick} color='danger'>상품노출</Button>
+                        // this.state.goods.goodsNo && !this.state.goods.confirm && <Button onClick={this.onAddGoodsClick} color='danger'>상품노출</Button>
+                        this.state.goods.goodsNo && !this.state.goods.confirm && this.getValidationCnt() === 0 && <ModalConfirmButton color={'danger'} title={'상품을 등록 하시겠습니까?'} content={'앞으로 수정 및 삭제가 불가능 합니다!'} onClick={this.onAddGoodsClick}>상품노출</ModalConfirmButton>
                     }
                     {
                         this.state.goods.confirm && '상품이 노출되어 수정/삭제 불가능 합니다'
                     }
+                    {
+                        this.state.goods.goodsNo && <Button onClick={this.onPreviewClick} >미리보기</Button>
+                    }
                 </footer>
                 <ToastContainer />  {/* toast 가 그려질 컨테이너 */}
+                <ProducerFullModalPopupWithNav show={this.state.isOpen} title={'상품미리보기'} onClose={this.onPreviewClose}>
+                    <Goods goodsNo={this.state.goods.goodsNo} />
+                </ProducerFullModalPopupWithNav>
             </div>
         )
     }

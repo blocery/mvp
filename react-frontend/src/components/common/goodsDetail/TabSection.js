@@ -1,29 +1,54 @@
-import React from 'react'
+import React, { Component, Fragment } from 'react'
 import Style from './GoodsDetail.module.scss'
-export default ({items, activeIndex}) => {
-    // const items = [{name:'상품설명', active: true},
-    //     {name:'구매안내', active: false},
-    //     {name:'재배일지(7)', active: false},
-    //     {name:'후기(19)', active: false}]
-    // const activeIndex = 0
+import PropTypes from 'prop-types'
+class TabSection extends Component{
+    constructor(props){
+        super(props)
+        this.state = {
+            activeIndex: 0,
+            content: null
+        }
 
-    //TODO history.goBack() 문제로 <a href 를 주석 처리하였음(클릭시 자동 스크롤 해결 해야함)
-    return(
-        <div className={Style.tabSticky} id={`section${activeIndex}`}>
-            {
-                items.map((item, index)=>{
-                    return(
-                            <a
-                                key={item.name+index}
-                                // href={`#section${index}`}
-                                className={index === activeIndex ? Style.active: null}
-
-                            >
-                                {item.name}
-                            </a>
-                        )
-                })
-            }
-        </div>
-    )
+        console.log(this.props)
+    }
+    onClick = (index, item, e) => {
+        this.setState({
+            activeIndex: index,
+            content: item.content
+        })
+    }
+    render(){
+        const items = this.props.items
+        const content = items[this.state.activeIndex].content || null
+        return(
+            <Fragment>
+                <div className={Style.tabSticky}>
+                    {
+                        items.map((item, index)=>{
+                            return(
+                                <a
+                                    key={item.name+index}
+                                    // href={`#section${index}`}
+                                    className={index === this.state.activeIndex ? Style.active: null}
+                                    onClick={this.onClick.bind(this, index, item)}
+                                >
+                                    {item.name}
+                                </a>
+                            )
+                        })
+                    }
+                </div>
+                {
+                    content
+                }
+            </Fragment>
+        )
+    }
 }
+TabSection.propTypes = {
+    items: PropTypes.array.isRequired
+}
+TabSection.defaultProps = {
+    items: []
+}
+export default TabSection

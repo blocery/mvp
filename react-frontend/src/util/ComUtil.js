@@ -26,14 +26,31 @@ export default class ComUtil {
         else return 1;
     }
 
-    static getDate(sDate){
-        let dateTo = sDate.replace(new RegExp('-', 'g'), '');
+    static getDate(strDate){
+        let dateTo = strDate.replace(new RegExp('-', 'g'), '');
 
         let pYear 	= dateTo.substr(0,4);
         let pMonth 	= dateTo.substr(4,2) - 1;
         let pDay 	= dateTo.substr(6,2);
 
         return new Date(pYear, pMonth, pDay);
+    }
+
+    /*******************************************************
+     날짜 연산 함수 - 날짜 더하기 빼기
+     예) addDate('2019-01-05', 5) =>  returns 2019-01-10
+        addDate('2019-01-06', -5) =>  returns 2019-01-01
+     */
+    static addDate(strDate, date) {
+        let inputDate = this.getDate(strDate);
+
+        inputDate.setDate( inputDate.getDate() + date);
+
+        let returnDate = inputDate.getFullYear() + '-' + this.zeroPad(inputDate.getMonth() + 1) + '-' + this.zeroPad(inputDate.getDate())
+
+        //console.log(returnDate);
+        return returnDate;
+
     }
 
     /*******************************************************
@@ -239,7 +256,7 @@ export default class ComUtil {
     }
 
     /*******************************************************
-     valword 형식 확인 정규식(8~16자 영대소문자, 숫자, 특수문자 포함)
+     valword 형식 확인 정규식(8~16자 영문자, 숫자, 특수문자 필수포함)
      @Param : (string)
      @Return : true/false
      *******************************************************/
@@ -267,5 +284,84 @@ export default class ComUtil {
      *******************************************************/
     static getParams(props) {
         return queryString.parse(props.location.search)
+    }
+
+    /*******************************************************
+     현재부터 미래 날짜 사이의 시간차를 구하여 포맷에 맞게 반환
+     @Param : Number(Millisecond), string
+     @Return : string
+     *******************************************************/
+    static getDateDiffTextBetweenNowAndFuture(date, formatter){
+        const format = formatter || 'DD[일] HH[시] mm[분] ss[초]';
+        const future  = moment(date);
+        const now = moment();
+        return moment.utc(moment(future,"YYYY-MM-DD HH:mm:ss").diff(moment(now,"YYYY-MM-DD HH:mm:ss"))).format(format)
+
+    }
+
+    /*******************************************************
+     array object 를 정렬하여 반환
+     @Param : array object, string(정렬 할 key), bool(desc 여부)
+     @Return : array object
+     *******************************************************/
+    static sort = (rowData, key, isDesc) => {
+        let desc = isDesc || true
+
+        return rowData.sort((a, b) => {
+            if (desc)
+                return b[key] - a[key]
+            else
+                return a[key] - b[key]
+        })
+    }
+    static isWebView() {
+
+        console.log(navigator.userAgent);
+
+        if (navigator.userAgent.startsWith('BloceryApp')) {
+            return true;
+        }
+        return false;
+    }
+
+    //price3Step - 알파서비스 전용, 1번상품에 대해 3단계 가격정책 적용.
+    /**
+     * @param goods
+     *         사용필드 reservationPrice - 최종예약판매가
+     *                saleEnd - 판매마감일자 :UTC date
+     * @Return: 3단계 가격 array [{toDate:YYYY-MM-DD,price:1단계가격}, {toDate:YYYY-MM-DD, price:2단계 가격}, {toDate:YYYY-MM-DD, price:3단계 가격}]
+     */
+    static price3StepAll(goods) {
+
+        let saleEndStr = this.utcToString(goods.saleEnd);
+
+        let price1 = {toDate:this.addDate(saleEndStr,-14), price: Math.floor(goods.reservationPrice * 0.6) };  //60% 가격
+        let price2 = {toDate:this.addDate(saleEndStr,-7), price: Math.floor(goods.reservationPrice * 0.75) }; //75% 가격
+        let price3 = {toDate:saleEndStr, price:goods.reservationPrice}; //3단계 최종예약판매가.
+
+        let returnArray =[];
+        returnArray.push(price1,price2,price3);
+
+        return returnArray;
+    }
+    /**
+        3step가격 중 오늘의 가격 리턴.
+        오늘이 toDate1보다 작거나 같으면 price1 리턴
+        오늘이 toDate1보다 크고 toDate2보다 작거나같으면 price2 리턴
+        오늘이 toDate2보다 크면 price3 리턴.
+     */
+    static price3StepCurrent(goods) {
+
+        let today = this.getNow(); //UTC time.
+        let todayStr = this.utcToString(today); //YYYY-MM-DD
+
+        const price3all = this.price3StepAll(goods);
+
+        if (this.compareDate(todayStr, price3all[0].toDate) <= 0 ) return price3all[0].price;
+
+        if (this.compareDate(todayStr, price3all[0].toDate) > 0 &&
+            this.compareDate(todayStr, price3all[1].toDate) <= 0 ) return price3all[1].price;
+
+        return price3all[2].price;
     }
 }

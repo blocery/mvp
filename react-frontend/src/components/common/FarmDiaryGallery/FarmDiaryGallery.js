@@ -11,7 +11,7 @@ export default class FarmDiaryGallery extends Component{
     onClick = (e) => {
         const { data } = this.props
         const src = e.target.src
-        const item = data.filter(item => item.src === src)
+        const item = data.find(item => item.imageUrl === src)
         this.props.onClick(item)
     }
     render(){
@@ -20,7 +20,13 @@ export default class FarmDiaryGallery extends Component{
                 <div className={Style.wrap}>
                     {
                         this.props.data.map((item, index)=>{
-                            return <FarmDiaryCard key={item.src+index} {...item} onClick={this.onClick}/>
+                            return <FarmDiaryCard
+                                key={item.imageUrl}
+                                {...item}
+                                onClick={this.onClick}
+                                titleLength={this.props.titleLength}
+                                contentLength={this.props.contentLength}
+                            />
                         })
                     }
                 </div>

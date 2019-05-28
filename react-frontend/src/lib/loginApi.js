@@ -7,8 +7,8 @@ import { Server } from "../components/Properties";
  */
 export const doLogout = () => axios(Server.getRestAPIHost() + '/login', { method: "delete", withCredentials: true, credentials: 'same-origin' })
     .then((response) => {
-        //autoLogin false
-        localStorage.setItem('autoLogin', false);
+        //autoLogin false, localStorage.setItem('autoLogin', false);
+        localStorage.clear();
     });
 
 /**
@@ -30,20 +30,21 @@ export const doLogin = (data) => axios(Server.getRestAPIHost() + '/login', {meth
  */
 export const getLoginUser = () => axios(Server.getRestAPIHost() + '/login', { method: "get", withCredentials: true, credentials: 'same-origin' })
     .then((response)=> {
-    console.log(response);
-    if (response.data === '') {  //return null
-        console.log('NEED to LOGIN');
-        return '';
-    }
-    if (response.data.status === 200) {
-        return response.data;
+        console.log(response);
+        if (response.data === '') {  //return null
+            console.log('NEED to LOGIN');
+            return '';
+        }
+        if (response.data.status === 200) {
+            return response.data;
 
-    }else {
-        console.log('getLoginUser ERROR:' + response.data.status);
-        return '';
-    }
-}).catch(function (error) {
-    console.log(error);
-});
+        }else {
+            console.log('getLoginUser ERROR:' + response.data.status);
+            return '';
+        }
+    }).catch(function (error) {
+        console.log(error);
+    });
 
 
+export const checkPassPhrase = (data) => axios(Server.getRestAPIHost() + '/login/passPhrase', { method: "post", params:{ passPhrase: data }, withCredentials: true, credentials: 'same-origin' })

@@ -1,4 +1,5 @@
 import ComUtil from '../src/util/ComUtil';
+import moment from 'moment-timezone';
 
 //USAGE: $npm test
 
@@ -32,3 +33,27 @@ test('Set_Get test', () => {
     expect(ret).toBe(1);
 });
 */
+
+test('price3StepAll test', () => {
+
+    let testEndDate = moment('2019-06-02T15:00:00Z');
+    let goods = {reservationPrice:1000, saleEnd: testEndDate };
+    //console.log(testEndDate);
+
+    let arr = ComUtil.price3StepAll(goods);
+
+    expect(arr[0].toDate).toBe('2019-05-20');
+    expect(arr[0].price).toBe(600); //60%로 변경
+    console.log(arr);
+});
+
+test('price3StepCurrent test', () => {
+
+    let testEndDate = moment('2019-05-25T15:00:00Z');  //오늘부터 8일~14일 사이면 750리턴.
+    let goods = {reservationPrice:1000, saleEnd: testEndDate };
+
+    let arr = ComUtil.price3StepAll(goods);
+
+    const todayPrice = ComUtil.price3StepCurrent(goods);
+    console.log('todayPrice:' + todayPrice);
+});

@@ -4,7 +4,7 @@ import {Container, Row, Col} from 'reactstrap'
 import { getFarmDiary } from '../../../lib/farmDiaryApi'
 import ComUtil from '../../../util/ComUtil'
 import {Server} from '../../Properties'
-
+import { Webview } from '../../../lib/webviewApi'
 const colStyle = { paddingLeft: 0, paddingRight: 0 }
 
 export default class FarmDiary extends Component {
@@ -26,22 +26,13 @@ export default class FarmDiary extends Component {
         //ajax
         const { data } = await getFarmDiary()
         const bindData = this.makeBindData(data)
-
         this.setState({
             loading: false,
             data: bindData
         })
     }
     makeBindData = (data) => {
-        this.sortDesc(data)                 //reference 참조를 통한 정렬
         return this.getFilteredData(data)   //새로운 배열 반환
-    }
-    //재배일지 등록일자 내림차순 정렬
-    sortDesc = (data) => {
-        data.sort((a,b)=>{
-            //return a.diaryRegDate < b.diaryRegDate ? -1 : a.diaryRegDate > b.diaryRegDate ? 1 : 0
-            return b.cultivationDiary.diaryRegDate - a.cultivationDiary.diaryRegDate
-        })
     }
     //goods 에서 card 에 바인딩 할 object 반환
     getFilteredData = (data) => {
@@ -49,17 +40,15 @@ export default class FarmDiary extends Component {
         return data.map((goods)=>{
             return {
                 goodsNo: goods.goodsNo,
-                cultivationStepNm: goods.cultivationDiary.cultivationStepNm,
-                imageUrl: goods.cultivationDiary.diaryImages.length > 0 ? serverImageUrl + goods.cultivationDiary.diaryImages[0].imageUrl : '',
                 goodsNm: goods.goodsNm,
-                cultivationStepMemo: goods.cultivationDiary.cultivationStepMemo,
-                diaryRegDate: goods.cultivationDiary.diaryRegDate
+                ...goods.cultivationDiary,
+                imageUrl: goods.cultivationDiary.diaryImages.length > 0 ? serverImageUrl + goods.cultivationDiary.diaryImages[0].imageUrl : ''
             }
         })
     }
 
     onImageClicked = (item) => {
-        console.log(item)
+        Webview.openPopup('/FarmersDetailActivity?goodsNo='+item.goodsNo)
     }
     render() {
         return(
@@ -74,6 +63,8 @@ export default class FarmDiary extends Component {
                         <FarmDiaryGallery
                             data={this.state.data}
                             onClick={this.onImageClicked}
+                            titleLength={20}
+                            contentLength={40}
                         />
                     </Col>
                 </Row>

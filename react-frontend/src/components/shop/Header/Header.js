@@ -7,8 +7,8 @@ import { faShoppingCart, faCarrot, faAppleAlt, faCartPlus, faCartArrowDown, faSt
 import { observer, inject } from 'mobx-react';
 import { BloceryLogoWhite } from '../../common'
 
-@inject('HeaderStore')
-@observer
+// @inject('HeaderStore')
+// @observer
 class Header extends Component{
     constructor(props) {
         super(props);
@@ -54,33 +54,33 @@ class Header extends Component{
 
                 <Nav className="ml-auto" navbar>
                     <NavItem>
-                        <NavLink tag={Link} to={'/login'} ><FontAwesomeIcon icon={faShoppingCart} size={'sm'}/></NavLink>
+                        <NavLink tag={Link} to={'/#'} ><FontAwesomeIcon icon={faShoppingCart} size={'sm'}/></NavLink>
                     </NavItem>
 
-                    <NavItem>
+                    {/*<NavItem>*/}
 
-                        <Dropdown direction='left' size='sm' isOpen={this.state.isOpen} toggle={this.toggle}>
-                            <DropdownToggle caret>
-                                Sample
-                            </DropdownToggle>
-                            <DropdownMenu>
-                                <DropdownItem>
-                                    <NavLink className={'text-info'} tag={Link} to={'/sample/mobx'} >mobx</NavLink>
-                                </DropdownItem>
-                                <DropdownItem>
-                                    <NavLink className={'text-info'} tag={Link} to={'/sample/ImageCompressor'} >이미지업로드(압축)</NavLink>
-                                </DropdownItem>
-                                <DropdownItem>
-                                    <NavLink className={'text-info'} tag={Link} to={'/sample/SimpleStorageTest'} >SimpleStorageTest</NavLink>
-                                </DropdownItem>
+                        {/*<Dropdown direction='left' size='sm' isOpen={this.state.isOpen} toggle={this.toggle}>*/}
+                            {/*<DropdownToggle caret>*/}
+                                {/*Sample*/}
+                            {/*</DropdownToggle>*/}
+                            {/*<DropdownMenu>*/}
+                                {/*<DropdownItem>*/}
+                                    {/*<NavLink className={'text-info'} tag={Link} to={'/sample/mobx'} >mobx</NavLink>*/}
+                                {/*</DropdownItem>*/}
+                                {/*<DropdownItem>*/}
+                                    {/*<NavLink className={'text-info'} tag={Link} to={'/sample/ImageCompressor'} >이미지업로드(압축)</NavLink>*/}
+                                {/*</DropdownItem>*/}
+                                {/*<DropdownItem>*/}
+                                    {/*<NavLink className={'text-info'} tag={Link} to={'/sample/SimpleStorageTest'} >SimpleStorageTest</NavLink>*/}
+                                {/*</DropdownItem>*/}
 
-                                <DropdownItem>
-                                    <NavLink className={'text-info'} tag={Link} to={'/sample/TokenTest'} >TokenTest</NavLink>
-                                </DropdownItem>
+                                {/*<DropdownItem>*/}
+                                    {/*<NavLink className={'text-info'} tag={Link} to={'/sample/TokenTest'} >TokenTest</NavLink>*/}
+                                {/*</DropdownItem>*/}
 
-                            </DropdownMenu>
-                        </Dropdown>
-                    </NavItem>
+                            {/*</DropdownMenu>*/}
+                        {/*</Dropdown>*/}
+                    {/*</NavItem>*/}
                 </Nav>
             </Navbar>
 

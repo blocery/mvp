@@ -2,7 +2,7 @@ import React, { Component, Fragment } from 'react'
 import { Route, Switch, Redirect } from 'react-router-dom'
 import { ProducerNav, ProducerXButtonNav } from '../components/common'
 import { ProducerMenuList } from '../components/Properties'
-
+import { TabBar } from '../components/common'
 class ProducerContainer extends Component {
     constructor(props) {
         super(props)
@@ -12,6 +12,7 @@ class ProducerContainer extends Component {
     getMenu = (id) => {
         return ProducerMenuList.find(item => item.route === 'producer' && item.id === id)
     }
+
     render() {
 
         const url = this.props.match.url                        //ex) /producer/farmDiaryList
@@ -31,7 +32,7 @@ class ProducerContainer extends Component {
                 }
                 {
                     // Navigation - XButton & Title
-                    closeNav && <ProducerXButtonNav name={name}/>
+                    // closeNav && <ProducerXButtonNav name={name}/>
                 }
 
                 {
@@ -40,6 +41,10 @@ class ProducerContainer extends Component {
                         <Route path={url} component={page} />
                     </div>
                 }
+
+                <TabBar
+                    pathname={this.props.history.location.pathname}
+                />
 
             </div>
 

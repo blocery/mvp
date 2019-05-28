@@ -1,20 +1,26 @@
 import TokenGethSC from '../../../contracts/TokenGethSC';
 import React, {Fragment, Component } from 'react'
-import { Container, InputGroup, InputGroupAddon, InputGroupText, Input, Form, Row, Col, FormGroup, Label, Button, Table } from 'reactstrap';
+import { Container, Modal, ModalHeader, ModalBody, ModalFooter, Input, Row, Col, Button, Table } from 'reactstrap';
 import { Link } from 'react-router-dom'
 import { getGoods, getGoodsByGoodsNo, updateGoodsRemained } from '../../../lib/goodsApi'
-import { Server } from '../../Properties'
+import { Server, Const } from '../../Properties'
 import ComUtil from '../../../util/ComUtil'
-import { getLoginUser } from '../../../lib/loginApi'
-import { getConsumer, addOrder } from '../../../lib/shopApi'
+import {checkPassPhrase, getLoginUser} from '../../../lib/loginApi'
+import { getConsumer } from '../../../lib/shopApi'
+import { addOrder } from '../../../lib/shopApi'
 import { Webview } from '../../../lib/webviewApi'
 import { BLCT_TO_WON, exchangeWon2BLCTComma } from "../../../lib/exchangeApi"
 import Style from './Style.module.scss'
-import { ShopXButtonNav } from '../../common'
+import { ShopXButtonNav, ModalWithNav } from '../../common'
 
-import { getBalanceOf, orderGoods } from '../../../lib/smartcontractApi'
+import { getBalanceOf, orderGoods, getUserEther } from '../../../lib/smartcontractApi'
 import { getProducerByProducerNo } from '../../../lib/producerApi';
 import { exchangeWon2BLCT } from '../../../lib/exchangeApi';
+
+import { ToastContainer, toast } from 'react-toastify'                              //토스트
+import 'react-toastify/dist/ReactToastify.css'
+
+import InputAddress from '../../../components/shop/buy/InputAddress'
 
 export default class Buy extends Component {
 
@@ -22,20 +28,24 @@ export default class Buy extends Component {
         super(props);
 
         this.state = {
+            modal:false,  //모달 여부
+            modalType: '',  //모달 종류
             goods: {},
             images: null,
             loginUser: {},
             tokenBalance: 0,
             order : {  //주문관련 정보 저장
-                consumerNo: null,
+                consumerNo: 0,
                 deliveryFee: 0,
                 orderPrice: 0,    //최종 가격
                 orderCnt: 1,
                 deposit:0,
                 orderDate:null,
-                deliverMsg: '',
+                deliveryMsg: '',
 
                 //Goods에서 copy항목
+                goodsNm:null,
+                itemNm:null,
                 expectShippingStart:null,
                 expectShippingEnd:null,
                 packUnit:null,
@@ -45,7 +55,9 @@ export default class Buy extends Component {
                 //Consumer에서 copy
                 receiverName: '',
                 receiverPhone: '',
-                receiverAddr: ''
+                receiverAddr: '',
+                receiverAddrDetail: '',
+                zipNo: ''
             },
             msgHidden: true,
             directMsg: ''
@@ -64,9 +76,11 @@ export default class Buy extends Component {
 
         //로그인 체크
         const loginUser = await getLoginUser();
-        if (!loginUser) { //미 로그인 시 로그인 창으로 이동.
-            this.props.history.push('/login');
-        }
+
+        //상품상세에서 구매버튼 클릭시체크하도록 변경
+        // if (!loginUser) { //미 로그인 시 로그인 창으로 이동.
+        //     this.props.history.push('/login');
+        // }
         console.log({loginUser:loginUser})
 
         // 로그인한 사용자의 consumer 정보
@@ -78,9 +92,14 @@ export default class Buy extends Component {
         const goodsNo = params.get('goodsNo')
 
         const { data:goods } = await getGoodsByGoodsNo(goodsNo);
-        console.log({ goodsNo: goodsNo, goods:goods, images:goods.goodsImages });
 
-        console.log({loginUserInfo:loginUserInfo})
+        console.log({loginUserInfo:loginUserInfo});
+
+        /**알파서비스 전용, 알파 상품에 대해 3단계 가격정책 적용.*/
+        if (Const.IS_ALPHA_SERVICE) {
+            goods.reservationPrice = ComUtil.price3StepCurrent(goods);
+        }
+
 
         //order 가격 등 계산
         let order = Object.assign({}, this.state.order);
@@ -90,6 +109,8 @@ export default class Buy extends Component {
         order.receiverName = loginUserInfo.data.name;
         order.receiverPhone = loginUserInfo.data.phone;
         order.receiverAddr = loginUserInfo.data.addr;
+        order.receiverAddrDetail = loginUserInfo.data.addrDetail;
+        order.zipNo = loginUserInfo.data.zipNo;
 
         this.setState({
             goods: goods,
@@ -135,7 +156,7 @@ export default class Buy extends Component {
         })
     }
 
-    //배송 메세지 수정
+    //배송 메세지 변경
     onMsgChange = (e) => {
         let order = Object.assign({}, this.state.order);
 
@@ -143,7 +164,7 @@ export default class Buy extends Component {
             this.setState({ msgHidden: false })
         } else {
             this.setState({ msgHidden: true })
-            order.deliverMsg = e.target.selectedOptions[0].label;
+            order.deliveryMsg = e.target.selectedOptions[0].label;
         }
         this.setState({
             order:order
@@ -156,7 +177,8 @@ export default class Buy extends Component {
             [e.target.name]: e.target.value
         })
         let order = Object.assign({}, this.state.order);
-        order.deliverMsg = this.state.directMsg
+        order.deliveryMsg = e.target.value
+
         this.setState({
             order:order
         })
@@ -178,6 +200,30 @@ export default class Buy extends Component {
             alert('배송지 정보를 정확하게 입력해주세요.')
             return false;
         }
+        return true;
+    }
+
+    //react-toastify  usage: this.notify('메세지', toast.success/warn/error);
+    notify = (msg, toastFunc) => {
+        toastFunc(msg, {
+            position: toast.POSITION.TOP_RIGHT
+            //className: ''     //클래스를 넣어도 됩니다
+        })
+    }
+
+    //주문수량 goods잔여 물량등 check
+    orderValidate = (order, goods) => {
+        if (goods.remainedCnt < order.orderCnt) {
+            this.notify('남은 상품수량이 부족합니다. 재고:'+goods.remainedCnt+' 주문:' + order.orderCnt, toast.warn);
+            return false;
+        }
+
+        if (goods.expectShippingEnd < order.orderDate) {
+            this.notify('주문가능한 날짜가 지났습니다', toast.warn);
+            return false;
+        }
+
+        return true;
     }
 
     onBuyClick = async () => {
@@ -191,16 +237,17 @@ export default class Buy extends Component {
 
         if(balance < priceToken) {
             // TODO 토큰 구매페이지 이동 필요
-            alert('토큰이 부족합니다. 토큰울 추가구입하세요');
+            alert('토큰이 부족합니다. 토큰추가구매는 베타버전에서 제공예정입니다.');
             return;
         }
 
         //goods에서 필요한 attr copy
         ComUtil.objectAttrCopy(order, this.state.goods); //동일한 attribute Copy: goodsNm, expect.. packUnit packAmount packCnt
 
-        order.consumerNo = this.state.loginUser.uniqueNo;
+        //order.consumerNo = this.state.loginUser.uniqueNo;
         order.producerNo = this.state.goods.producerNo;
         order.goodsNo = this.state.goods.goodsNo;
+        order.orderImg = this.state.goods.goodsImages[0].imageUrl;
 
         //TODO 위약금 계산로직 개선필요 - 현재는 그냥 비례식
         order.deposit = this.state.order.orderPrice * 0.2;
@@ -210,9 +257,9 @@ export default class Buy extends Component {
 
         order.orderDate = ComUtil.getNow();
 
-        this.checkValidation();
-
-        const {data:orderNo} = await addOrder(order);
+        if (!this.checkValidation()) {
+           return; //배송지 미입력시 중단.
+        }
 
         //남은위약금, 남은수량 세팅
         let goods = Object.assign({}, this.state.goods);
@@ -221,12 +268,49 @@ export default class Buy extends Component {
         goods.remainedCnt = goods.remainedCnt - 1;
         goods.remainedDeposit = goods.remainedDeposit - order.deposit;
         console.log('goods.remainedDeposit;'+ goods.remainedDeposit);
+
+        if (!this.orderValidate(order, goods)) return; //주문 이상없는지 check
+        //let passPhrase = prompt('결제비번 6자리숫자를 입력해 주세요.', '숫자 6자리');
+
+        //임시저장
+        this.setState({
+            goods: goods, //임시저장
+            order: order, //임시저장
+            modal:true, //결제비번창 오픈.
+            modalType: 'pay'
+        });
+
+
+        /* 결재처리 : modalToggleOk로 소스 이동
+        */
+    }
+
+    modalToggleOk = async () => {
+
+        let goods = Object.assign({}, this.state.goods);
+        let order = Object.assign({}, this.state.order);
+
+        //결제 처리
+        console.log("modalOK:" + this.state.passPhrase);
+
+        let {data:checkResult} = await checkPassPhrase(this.state.passPhrase);
+        console.log('checkResult:' + checkResult);
+        if (!checkResult) {
+            this.notify('결제 비번이 틀렸습니다.', toast.error);
+            return; //결제 비번 오류, stop&stay
+        }
+
         await updateGoodsRemained(goods);
+        const {data:orderNo} = await addOrder(order);
+
+        console.log(order)
 
         if (orderNo) { //구매 성공시 confirm으로 이동.
+
             this.setState({
                 goods: goods,
-                order: order
+                order: order,
+                modal: false
             });
 
             // 소비자 토큰 지급
@@ -235,8 +319,34 @@ export default class Buy extends Component {
         }
     }
 
+    modalToggle = () => {
+        this.setState(prevState => ({
+            modal: !prevState.modal
+        }));
+    }
+
+    passPhraseInput = (e) => {
+        this.setState({
+            passPhrase:e.target.value
+        })
+    }
+
     // 배송지 정보 수정 버튼 클릭
     updateAddressClick = () => {
+
+        this.setState({
+            modalType: 'delivery'
+        })
+
+        this.modalToggle()
+
+
+        return
+        // 가입후 첫구매일 경우 ether check해서 ether 지급
+
+        //05.02 Gary: 이벤트용으로 Join에서 지급하도록 변경.
+        //getUserEther(this.tokenGethSC);
+
         const order = Object.assign({}, this.state.order)
         const addr = order.receiverAddr || ''
         const phone = order.receiverPhone || ''
@@ -247,16 +357,25 @@ export default class Buy extends Component {
             order: order
         })
         // 배송지 정보 수정 화면으로 consumerNo, addr, phone, name을 param으로 넘김
-        Webview.openPopup(`/inputAddress?consumerNo=${order.consumerNo}&receiverAddr=${order.receiverAddr}&receiverPhone=${order.receiverPhone}&receiverName=${order.receiverName}`, this.callback)
+        Webview.openPopup(`/inputAddress?consumerNo=${order.consumerNo}&receiverAddr=${order.receiverAddr}&receiverPhone=${order.receiverPhone}&receiverName=${order.receiverName}`);//, this.callback)
     }
 
     // 배송지 정보 수정 화면에서 수정된 내용 callback으로 받아옴
-    callback = (response) => {
-        const {param} = JSON.parse(response.data)
-        const order = Object.assign({}, this.state.order)
-        this.setState({
-            order: order
-        })
+    callback = (data) => {
+
+        if(data){
+            const order = Object.assign({}, this.state.order);
+            order.receiverName = data.receiverName;
+            order.receiverPhone = data.phone;
+            order.receiverAddr = data.addr;
+            order.receiverAddrDetail = data.addrDetail;
+            order.zipNo = data.zipNo;
+            this.setState({
+                order: order
+            })
+        }
+
+        this.modalToggle()
     }
 
     payOrderToken = async(orderNo) => {
@@ -286,18 +405,17 @@ export default class Buy extends Component {
                     </Row>
                     <hr/>
                     <Row>
-                        <Col xs={'3'}>
-                            <img src={this.getFirstImageUrl(this.state.images)} />
+                        <Col xs={3} style={{paddingRight: 0}}>
+                            <img className={Style.img} src={this.getFirstImageUrl(this.state.images)} />
                         </Col>
-                        <Col xs={'0.5'}/>
-                        <Col>
-                            <small>{this.state.goods.itemNm} </small><br/>
+                        <Col xs={9}>
+                            {/*<small>{this.state.goods.itemNm} </small><br/>*/}
                             {this.state.goods.goodsNm} {this.state.goods.packAmount + ' ' + this.state.goods.packUnit}<br/>
 
                             <Row>
-                                <Col> 수량 </Col>
-                                <Col>
-                                    <Input type='select' name='select' id='buyCount' onChange={this.onCountChange}>
+                                <Col xs={'8'}> <span className={Style.textSmall}> 구매수량 (잔여:{this.state.goods.remainedCnt})</span> :</Col>
+                                <Col xs={'3'}>
+                                    <Input type='select' name='select' id='buyCount' onChange={this.onCountChange} style={{width:'60px'}} >
                                         <option>1</option>
                                         <option>2</option>
                                         <option>3</option>
@@ -305,6 +423,7 @@ export default class Buy extends Component {
                                         <option>5</option>
                                     </Input>
                                 </Col>
+                                <Col xs={'1'}/>
                             </Row>
 
                             <small>
@@ -316,15 +435,12 @@ export default class Buy extends Component {
                     <hr className = {Style.hrBold}/>
 
                     <Row>
-                        <Col xs={'4'}/>
-                        <Col xs={'3.5'} className={Style.textNotiR}>
-                            {ComUtil.addCommas(this.state.order.orderPrice)} 원
-                        </Col>
-                        <Col xs={'1.5'} className={Style.textNotiLs}>
-                            ({(this.state.goods.shipPrice-this.state.goods.reservationPrice)*100/this.state.goods.shipPrice}%)
-                        </Col>
-                        <Col xs={'3'} className={Style.textLineS}>
-                            {ComUtil.addCommas(this.state.goods.shipPrice * this.state.order.orderCnt)}원
+                        <Col xs={'5'}/>
+                        <Col xs={'7'} className={Style.textNotiR}>
+                            <span style={{color:'black', textDecoration:'line-through', fontSize:'small'}} >
+                                {ComUtil.addCommas(this.state.goods.shipPrice * this.state.order.orderCnt)}원
+                            </span>&nbsp;
+                            <b>{ComUtil.addCommas(this.state.order.orderPrice)}원 ({Math.floor(Math.round((this.state.goods.shipPrice-this.state.goods.reservationPrice)*100/this.state.goods.shipPrice))}%)</b>
                         </Col>
                     </Row>
 
@@ -349,7 +465,7 @@ export default class Buy extends Component {
                             <small>
                                 {this.state.order.receiverName} <br/>
                                 {this.state.order.receiverPhone}<br />
-                                {this.state.order.receiverAddr}<br/>
+                                ({this.state.order.zipNo}){this.state.order.receiverAddr}<br/> {this.state.order.receiverAddrDetail}<br/>
                             </small>
                         </Col>
                     </Row>
@@ -362,7 +478,7 @@ export default class Buy extends Component {
                     <hr/>
                     <Row>
                         <Col>
-                            <Input type='select' name='select' id='deliverMsg' onChange={this.onMsgChange}>
+                            <Input type='select' name='select' id='deliveryMsg' onChange={this.onMsgChange}>
                                 <option name='radio1' value=''>베송 메세지를 선택해 주세요.</option>
                                 <option name='radio2' value='radio1'>집 앞에 놔주세요.</option>
                                 <option name='radio3' value='radio2'>택배함에 놔주세요.</option>
@@ -391,34 +507,33 @@ export default class Buy extends Component {
                             {ComUtil.addCommas(this.state.goods.shipPrice * this.state.order.orderCnt)} 원
                         </Col>
                     </Row>
-                    {/*
+
                     <Row>
                         <Col xs={'8'}> <small> 배송비 </small></Col>
-                        <Col xs={'4'} className={Style.textRs} > 2,500 원 </Col>
+                        <Col xs={'4'} className={Style.textRs} > {this.state.goods.deliveryFee} 원 </Col>
                     </Row>
-                    */}
+
                     <Row>
                         <Col xs={'8'} className={Style.textSmall}> 예약 할인금액 </Col>
                         <Col xs={'4'} className={Style.textNotiRs}>
-                            {ComUtil.addCommas((this.state.goods.reservationPrice - this.state.goods.shipPrice) * this.state.order.orderCnt)} 원
+                            <b>{ComUtil.addCommas(this.state.order.orderPrice - this.state.goods.shipPrice * this.state.order.orderCnt)} 원</b>
                         </Col>
                     </Row>
                     <hr/>
                     <Row>
                         <Col xs={'8'}> 총 결제금액 </Col>
-                        <Col xs={'4'} className={Style.textRight}> {ComUtil.addCommas(this.state.order.orderPrice)} 원 </Col>
+                        <Col xs={'4'} className={Style.textRight}>{ComUtil.addCommas(this.state.order.orderPrice)} 원</Col>
                     </Row>
                     <hr/>
                     <Row>
-                        <Col xs={'8'}> 최종 결제금액(BLCT) </Col>
-                        <Col xs={'4'} className={Style.textNotiR}> {exchangeWon2BLCTComma(this.state.order.orderPrice)} BLCT </Col>
+                        <Col xs={'8'}> 최종 결제금액(α-BLCT) </Col>
+                        <Col xs={'4'} className={(Style.textNotiR)}><b>{exchangeWon2BLCTComma(this.state.order.orderPrice)} α-BLCT</b></Col>
                     </Row>
                     <Row>
-                        <Col xs={'8'} className={Style.textSmall}>  1 BLCT = { BLCT_TO_WON } 원 </Col>
-                        <Col xs={'4'} className={Style.textRs}> 보유 {this.state.tokenBalance} BLCT </Col>
+                        <Col xs={'8'} className={Style.textSmall}>  1 α-BLCT = { BLCT_TO_WON } 원 </Col>
+                        <Col xs={'4'} className={Style.textRs}> 보유 {this.state.tokenBalance} α-BLCT </Col>
                     </Row>
 
-                    <br/>
                     <br/>
                     <br/>
                 </Container>
@@ -426,6 +541,38 @@ export default class Buy extends Component {
                 <div className='buy'>
                     <div><Button color='warning' block onClick={this.onBuyClick}> 결 제 </Button></div>
                 </div>
+
+                <br/>
+                <ToastContainer/>
+                <div> {/* 결제비번 입력 모달 */}
+                    {
+
+                        <Modal isOpen={this.state.modalType === 'pay' && this.state.modal} toggle={this.toggle} className={this.props.className} centered>
+                            <ModalHeader toggle={this.modalToggle}> 결제비밀번호 입력</ModalHeader>
+                            <ModalBody>
+                                <Input name="inputPassPhrase" type="number" placeholder="숫자 6자리" onChange={this.passPhraseInput} pattern="[0~9]*" />
+                            </ModalBody>
+                            <ModalFooter>
+                                <Button color="primary" onClick={this.modalToggleOk}>확인</Button>{' '}
+                                <Button color="secondary" onClick={this.modalToggle}>취소</Button>
+                            </ModalFooter>
+                        </Modal>
+
+                    }
+
+                </div>
+
+                <ModalWithNav show={this.state.modalType === 'delivery' && this.state.modal} title={'배송지입력'} onClose={this.callback} noPadding>
+                    <InputAddress
+                        consumerNo={this.state.order.consumerNo}
+                        receiverAddr={this.state.order.receiverAddr}
+                        receiverAddrDetail={this.state.order.receiverAddrDetail}
+                        receiverPhone={this.state.order.receiverPhone}
+                        receiverName={this.state.order.receiverName}
+                        zipNo={this.state.order.zipNo}
+                    />
+                </ModalWithNav>
+
             </Fragment>
         )
     }

@@ -18,7 +18,7 @@ export default class GoodsList extends Component {
             <div>
             {
                 data.map((goods)=>{
-                    return <Goods goods={goods} onClick={this.onClick} />
+                    return <Goods key={'id-'+goods.goodsNo} goods={goods} onClick={this.onClick} />
                 })
             }
             </div>

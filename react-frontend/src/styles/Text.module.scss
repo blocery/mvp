@@ -67,6 +67,21 @@ $textBoldLarge: 900;
   text-decoration-line: line-through;
 }
 
+.textLineR {
+  text-decoration-line: line-through;
+  text-align: right;
+}
+
+.textLineRs {
+  font-size: small;
+  text-decoration-line: line-through;
+  text-align: right;
+}
+
+.textNoti {
+  color: $color-noti;
+}
+
 .textNotiR {
   text-align: right;
   color: $color-noti;

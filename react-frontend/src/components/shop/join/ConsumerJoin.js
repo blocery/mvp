@@ -3,12 +3,13 @@ import { Col, Button, Form, FormGroup, Label, Input, Container, InputGroup, Row,
 import { addConsumer, getConsumerEmail } from "../../../lib/shopApi";
 import ComUtil from "../../../util/ComUtil"
 import TokenGethSC from '../../../contracts/TokenGethSC';
-import { initUserToken } from "../../../lib/smartcontractApi";
-import { Const } from "../../Properties";
-
-import { Link } from 'react-router-dom'
+import { initUserToken, getUserEther } from "../../../lib/smartcontractApi";
+import { Const, Server } from "../../Properties";
+import axios from 'axios'
+import { ShopXButtonNav } from '../../common'
 import Terms from '../../common/Terms/Terms'
-import { BloceryLogoGreen } from '../../common'
+import { ToastContainer, toast } from 'react-toastify'                              //토스트
+import 'react-toastify/dist/ReactToastify.css'
 
 export default class ConsumerJoin extends Component{
     constructor(props) {
@@ -24,6 +25,7 @@ export default class ConsumerJoin extends Component{
             fadeOverlapEmail: false,
             fadeValword: false,
             fadeValwordCheck: false,
+            fadePassPhraseEnter: false,
             fadePassPhraseCheck: false,
             terms: [{name:'checkbox0', title:'이용약관', content:'이용약관내용입니다. 이용약관내용입니다. 이용약관내용입니다. 이용약관내용입니다. 이용약관내용입니다.'},
                 {name:'checkbox1', title:'개인정보 취급방침', content:'개인정보 취급방침 내용입니다. 개인정보 취급방침 내용입니다. 개인정보 취급방침 내용입니다. 개인정보 취급방침 내용입니다. 개인정보 취급방침 내용입니다.'}]
@@ -65,10 +67,22 @@ export default class ConsumerJoin extends Component{
 
     // valword regex
     valwordRegexCheck = (e) => {
+        //console.log('val: onBlur:' + e.target.value );
         if (!ComUtil.valwordRegex(e.target.value)) {
             this.setState({ fadeValword: true })
         } else {
             this.setState({ fadeValword: false })
+        }
+    }
+
+    handleValwordChange = (e) => {
+        this.setState({
+            [e.target.name]: e.target.value
+        })
+        //비밀번호가 틀린 상황이면.. RegexCheck 이중화..
+        if (this.state.fadeValword) {
+            //console.log('val: wrong-onChange:' + e.target.value)
+            this.valwordRegexCheck(e);
         }
     }
 
@@ -81,8 +95,17 @@ export default class ConsumerJoin extends Component{
         }
     }
 
+    passPhraseEnter = (e) => {
+        if (e.target.value.length != 6 || !ComUtil.onlyNumber(e.target.value)) {
+            this.setState({ fadePassPhraseEnter: true })
+        } else {
+            this.setState({ fadePassPhraseEnter: false })
+        }
+    }
+
     // 입력한 결제 비밀번호와 일치하는지 체크
     passPhraseCheck = (e) => {
+
         if(e.target.value != this.state.passPhrase) {
             this.setState({ fadePassPhraseCheck: true })
         } else {
@@ -105,9 +128,16 @@ export default class ConsumerJoin extends Component{
         })
     }
 
+    notify = (msg, toastFunc) => {
+        toastFunc(msg, {
+            position: toast.POSITION.TOP_CENTER
+        })
+    }
     // 회원가입버튼 클릭시 호출하는 api
     registConsumer = async (state) => {
-        const response = await addConsumer(state)
+        this.notify('가입 중입니다. 잠시 기다려주세요', toast.success);
+
+        const response = await addConsumer(state);
         if(response.data === 100) {
             alert('가입 오류입니다. 잠시 후 다시 시도해주세요.');
             return false;
@@ -116,10 +146,43 @@ export default class ConsumerJoin extends Component{
             return false;
         } else {
             let account = response.data;
-            initUserToken(this.tokenGethSC, account, Const.INITIAL_TOKEN);
-            alert('가입이 정상처리되었습니다.');
-            this.props.history.push('/login');
+            //alert('가입이 정상처리되었습니다.');
+            await this.autoLoginInitUserToken(account);
+            this.props.history.push('/joinComplete?name='+state.name+'&email='+state.email);
         }
+    }
+
+    autoLoginInitUserToken = async(account) => {
+
+        let data = {
+            email: this.state.email,
+            valword: this.state.valword,
+            userType: 'consumer'
+        }
+        console.log('data: ', data);
+
+        let self = this;
+
+        // LoginController의 loginBaseUnlocked 호출 후 아래 코드 시행
+        axios(Server.getRestAPIHost() + '/loginBaseUnlocked', { method: "post", withCredentials: true, data:data, credentials: 'same-origin' })
+            .then((response)=> {
+                console.log(response);
+                if (response.data === '') {  //return null
+                    console.log('NEED to LOGIN');
+                    return '';
+                }
+                if (response.status === 200) {
+
+                    initUserToken(self.tokenGethSC, response.data, account, Const.INITIAL_TOKEN);
+                    //05.02 Gary추가:테스트 필요 - AirDrop이벤트용 : 상용시에는 Buy에서 하도록 변경 필요
+                    getUserEther(self.tokenGethSC);
+
+                }else {
+                    console.log('getLoginUser ERROR:' + response.data.status);
+                }
+            }).catch(function (error) {
+            console.log(error);
+        });
     }
 
     // 회원가입버튼 클릭
@@ -134,7 +197,6 @@ export default class ConsumerJoin extends Component{
             alert('결제 비밀번호를 정확하게 입력해주세요.')
             return false;
         }
-
         if(!state.checkbox0 || !state.checkbox1) {
             alert('약관 동의는 필수사항입니다.')
             return false;
@@ -146,92 +208,95 @@ export default class ConsumerJoin extends Component{
     render(){
         const data = Object.assign({}, this.state)
         return(
-            <Container fluid>
-                <p></p>
-                <h1 className={'text-center'}>
-                    <Link to='/'><BloceryLogoGreen style={{width:'150px', height:'100%'}}/></Link>
-                </h1>
-                <br />
-                <Row>
-                    <Col xs={12}>
-                        <FormGroup>
-                            <Label>아이디</Label>
-                            <InputGroup>
-                                <Input name="email" value={this.state.email} placeholder="아이디(이메일)" onBlur={this.emailCheck} onChange={this.handleChange} />
-                            </InputGroup>
-                            {
-                                this.state.fadeEmail && <Fade in className={'text-danger'}>이메일 형식을 다시 확인해주세요.</Fade>
-                            }
-                            {
-                                this.state.fadeOverlapEmail && <Fade in className={'text-danger'}>이미 사용중인 이메일입니다.</Fade>
-                            }
-                        </FormGroup>
-                    </Col>
-                    <Col xs={12}>
-                        <FormGroup>
-                            <Label>비밀번호</Label>
-                            <InputGroup>
-                                <Input type="password" name="valword" value={this.state.valword} placeholder="영문자, 숫자, 특수문자 포함 8~16자리" onBlur={this.valwordRegexCheck} onChange={this.handleChange} />
-                            </InputGroup>
-                            {
-                                this.state.fadeValword && <Fade in className={'text-danger'}>8~16자 영문 대 소문자 숫자 특수문자를 사용하세요.</Fade>
-                            }
-                        </FormGroup>
-                    </Col>
-                    <Col xs={12}>
-                        <FormGroup>
-                            <Label>비밀번호 확인</Label>
-                            <InputGroup>
-                                <Input type="password" name="valwordCheck" placeholder="비밀번호 확인" onBlur={this.valwordCheck} onChange={this.handleChange} />
-                            </InputGroup>
-                            {
-                                this.state.fadeValwordCheck && <Fade in className={'text-danger'}>비밀번호가 일치하지 않습니다.</Fade>
-                            }
-                        </FormGroup>
-                    </Col>
-                    <Col xs={12}>
-                        <FormGroup>
-                            <Label>이름</Label>
-                            <InputGroup>
-                                <Input name="name" value={this.state.name} placeholder="이름" onChange={this.handleChange} />
-                            </InputGroup>
-                        </FormGroup>
-                    </Col>
-                </Row>
-                <h6>필수항목 정보를 정확하게 입력해주세요</h6>
-                <br />
-                <Row>
-                    <Col xs={12}>
-                        <FormGroup>
-                            <InputGroup>
-                                <Input type="password" name="passPhrase" value={this.state.passPhrase} placeholder="결제 비밀번호(숫자6자리)" onChange={this.handleChange} maxLength="6" />
-                            </InputGroup>
-                        </FormGroup>
-                    </Col>
-                    <Col xs={12}>
-                        <FormGroup>
-                            <InputGroup>
-                                <Input type="password" name="passPhraseCheck" placeholder="결제 비밀번호 확인" onBlur={this.passPhraseCheck} onChange={this.handleChange} maxLength="6" />
-                            </InputGroup>
-                            {
-                                this.state.fadePassPhraseCheck && <Fade in className={'text-danger'}>비밀번호가 일치하지 않습니다.</Fade>
-                            }
+            <Fragment>
+                <ShopXButtonNav backClose>소비자 회원가입</ShopXButtonNav>
+                <Container fluid>
+                    <p></p>
+                    <Row>
+                        <Col xs={12}>
+                            <FormGroup>
+                                <Label>아이디</Label>
+                                <InputGroup>
+                                    <Input name="email" value={this.state.email} placeholder="아이디(이메일)" onBlur={this.emailCheck} onChange={this.handleChange} />
+                                </InputGroup>
+                                {
+                                    this.state.fadeEmail && <Fade in className={'text-danger'}>이메일 형식을 다시 확인해주세요.</Fade>
+                                }
+                                {
+                                    this.state.fadeOverlapEmail && <Fade in className={'text-danger'}>이미 사용중인 이메일입니다.</Fade>
+                                }
+                            </FormGroup>
+                        </Col>
+                        <Col xs={12}>
+                            <FormGroup>
+                                <Label>비밀번호</Label>
+                                <InputGroup>
+                                    <Input type="password" name="valword" value={this.state.valword} placeholder="영문자, 숫자, 특수문자 필수조합 8~16자리" onBlur={this.valwordRegexCheck} onChange={this.handleValwordChange} />
+                                </InputGroup>
+                                {
+                                    this.state.fadeValword && <Fade in className={'text-danger'}>8~16자 영문자, 숫자, 특수문자를 필수 조합해서 사용하세요</Fade>
+                                }
+                            </FormGroup>
+                        </Col>
+                        <Col xs={12}>
+                            <FormGroup>
+                                <InputGroup>
+                                    <Input type="password" name="valwordCheck" placeholder="비밀번호 확인" onBlur={this.valwordCheck} onChange={this.handleChange} />
+                                </InputGroup>
+                                {
+                                    this.state.fadeValwordCheck && <Fade in className={'text-danger'}>비밀번호가 일치하지 않습니다.</Fade>
+                                }
+                            </FormGroup>
+                        </Col>
+                        <Col xs={12}>
+                            <FormGroup>
+                                <Label>이름</Label>
+                                <InputGroup>
+                                    <Input name="name" value={this.state.name} placeholder="이름" onChange={this.handleChange} />
+                                </InputGroup>
+                            </FormGroup>
+                        </Col>
+                    </Row>
+                    <h6>필수항목 정보를 정확하게 입력해주세요</h6>
+                    <br />
+                    <Row>
+                        <Col xs={12}>
+                            <FormGroup>
+                                <Label>결제 비밀번호</Label>
+                                <InputGroup>
+                                    <Input type="password" name="passPhrase" value={this.state.passPhrase} onBlur={this.passPhraseEnter} placeholder="결제 비밀번호(숫자6자리)" onChange={this.handleChange} maxLength="6" />
+                                </InputGroup>
+                                {
+                                    this.state.fadePassPhraseEnter && <Fade in className={'text-danger'}>6자리 숫자로 입력해 주세요.</Fade>
+                                }
+                            </FormGroup>
+                        </Col>
+                        <Col xs={12}>
+                            <FormGroup>
+                                <InputGroup>
+                                    <Input type="password" name="passPhraseCheck" placeholder="결제 비밀번호 확인" onBlur={this.passPhraseCheck} onChange={this.handleChange} maxLength="6" />
+                                </InputGroup>
+                                {
+                                    this.state.fadePassPhraseCheck && <Fade in className={'text-danger'}>비밀번호가 일치하지 않습니다.</Fade>
+                                }
 
-                        </FormGroup>
-                    </Col>
-                </Row>
-                <h6>상품 구매 시 사용할 결제 비밀번호를 숫자 6자리로 입력하세요</h6>
+                            </FormGroup>
+                        </Col>
+                    </Row>
+                    <h6>상품 구매 시 사용할 결제 비밀번호를 숫자 6자리로 입력하세요</h6>
 
-                <Terms data={this.state.terms} onClickCheck={this.handleCheckbox} onCheckAll={this.onChangeCheckAll} />
+                    <Terms data={this.state.terms} onClickCheck={this.handleCheckbox} onCheckAll={this.onChangeCheckAll} />
 
-                <Row>
-                    <Col xs={12}>
-                        <FormGroup>
-                            <Button block color={'info'} onClick={this.onRegisterClick}>회원가입</Button>
-                        </FormGroup>
-                    </Col>
-                </Row>
-            </Container>
+                    <Row>
+                        <Col xs={12}>
+                            <FormGroup>
+                                <Button block color={'info'} onClick={this.onRegisterClick}>회원가입</Button>
+                            </FormGroup>
+                        </Col>
+                    </Row>
+                </Container>
+                <ToastContainer/>
+            </Fragment>
 
         );
     }

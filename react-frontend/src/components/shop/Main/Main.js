@@ -65,7 +65,7 @@ export default class Main extends Component {
         return(
             <div>
                 <Header/>
-                <MainCategory/>
+                {/*<MainCategory/>*/}
                 {
                     contentPage
                 }

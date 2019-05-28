@@ -3,6 +3,7 @@ import {View} from 'react-native';
 import { createStackNavigator, createAppContainer } from 'react-navigation';
 import HomeScreen from './src/HomeScreen';
 import PopupScreen from './src/PopupScreen';
+import SplashScreen from './src/SplashScreen';
 
 export default class App extends Component {
     render() {
@@ -17,6 +18,7 @@ export default class App extends Component {
 
 const AppNavigator = createStackNavigator(
     {
+        Splash: SplashScreen,
         Home: HomeScreen,
         Popup: PopupScreen
     },

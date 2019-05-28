@@ -18,7 +18,7 @@ import { Server } from "../components/Properties";
 
 // 생산자 등록
 export const addProducer = (data) => axios(Server.getRestAPIHost() + '/producer', { method: "post", data: data, withCredentials: true, credentials: 'same-origin' })
-// 생산자 전체목록 조회
+// 로그인한 생산자  조회
 export const getProducer = () => axios(Server.getRestAPIHost() + '/producer', { method: "get", withCredentials: true, credentials: 'same-origin' })
 // 생산자 조회
 export const getProducerByProducerNo = (producerNo) => axios(Server.getRestAPIHost() + '/producer/producerNo', { method: "get", params: {producerNo: producerNo}, withCredentials: true, credentials: 'same-origin' })
@@ -31,3 +31,8 @@ export const addCultivationDiary = (goods) => axios(Server.getRestAPIHost() + '/
 //재배일지 수정
 export const updCultivationDiary = (goods) => axios(Server.getRestAPIHost() + '/producer/cultivationDiary', { method: "put", data: goods, withCredentials: true, credentials: 'same-origin' })
 
+// 생산자번호로 주문목록 조회
+export const getOrderByProducerNo = () => axios(Server.getRestAPIHost() + '/producer/orderByProducerNo', { method: "get", withCredentials: true, credentials: 'same-origin' })
+
+//주문정보 업데이트
+export const updOrder = (order) => axios(Server.getRestAPIHost() + '/producer/order', { method: "put", data: order, withCredentials: true, credentials: 'same-origin' })

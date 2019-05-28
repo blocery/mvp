@@ -1,22 +1,39 @@
 import DeviceInfo from 'react-native-device-info'
 
 export const Server = {
+
+    //private TEST 용도
+    _isDeviceEmulator: function() {
+        // return true;  //폰에서도 pc개발환경 강제 접속용
+        return DeviceInfo.isEmulator(); // master소스는 항상 이걸로 세팅.
+    },
+
+    /* 중요: google Play 배포용도 */
+    _isDeploy: function () {
+        return false;  //master소스는 항상 이걸로 세팅
+        //return true;   //구글 play배포시 이거로 세팅. AWS서버 이용
+    },
+
     getServerURL: function() {
-        // return DeviceInfo.isEmulator() ? 'http://localhost:3000/main/recommend' : 'http://210.92.91.225:8080/main/recommend'
-        return DeviceInfo.isEmulator() ? 'http://localhost:3000' : 'http://210.92.91.225:8080'
+        const serverUrl = this._isDeploy() ? 'http://blocery.com' : 'http://210.92.91.225:8080'; //AWS IP: 'http://13.209.43.206'
+
+        return this._isDeviceEmulator() ? 'http://localhost:3000' : serverUrl;
     },
     getMainPage: function() {
-        return DeviceInfo.isEmulator() ? (this.getServerURL() + '/main/recommend') : this.getServerURL() //서버에서는 main이 /임
-        // return DeviceInfo.isEmulator() ? 'http://localhost:3000/producer' : 'http://210.92.91.225:8080/'
+        return  this.getServerURL()  + '/main/recommend';
+        // return this.getServerURL()  + '/producer/';
     },
-    getGoodsPage: function() {
-        return DeviceInfo.isEmulator() ? (this.getServerURL() + '/main/resv') : (this.getServerURL()+'/resv')
+    getGoodsPage: function(isProducer) {
+        return isProducer ? (this.getServerURL()+'/producer/goodsList') : (this.getServerURL() + '/main/resv');
     },
-    getDiaryPage: function() {
-        return DeviceInfo.isEmulator() ? (this.getServerURL() + '/main/farmDiary') : (this.getServerURL()+'/farmDiary')
+    getDiaryPage: function(isProducer) {
+        return  isProducer ? (this.getServerURL() + '/producer/farmDiaryList') : (this.getServerURL()+'/main/farmDiary');
     },
     getMyPage: function() {
-        return DeviceInfo.isEmulator() ? (this.getServerURL() + '/mypage') : (this.getServerURL()+'/mypage') //TODO mypage 개발 후 변경필요
+        return (this.getServerURL()+'/mypage');
+    },
+    getRestAPIHost: function() {
+        return this._isDeviceEmulator() ? 'http://localhost:8080/restapi' : this.getServerURL() + '/restapi';
     }
 
 };
