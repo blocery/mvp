@@ -46,7 +46,7 @@ http://blocery.io
 
 1. 설치
 
-   * $ (sudo) npm install -g truffle@4.1.8  로 설치
+   * $ (sudo) npm install -g truffle@4.1.14  로 설치
    * /truffle폴더 npm install
    * ganache(로컬 test용 이더리움) 설치  http://truffleframework.com/ganache/
 
