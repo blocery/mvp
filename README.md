@@ -5,6 +5,11 @@ Blocery is a Blockchain based e-commerce platform of pre-harvest agricultural pr
 http://blocery.io 
 
 
+#### dApp
+https://play.google.com/store/apps/details?id=com.blocery  (for Android)
+
+http://blocery.com (for iPhone)
+
 
 ### FrontEnd (react.js)
 
