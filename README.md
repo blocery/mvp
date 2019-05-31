@@ -1,8 +1,6 @@
 # blocery Alpha-Service
 
-Blocery is a Blockchain based e-commerce platform of pre-harvest agricultural products.  
-
-http://blocery.io 
+Blocery is a Blockchain based e-commerce platform of pre-harvest agricultural products.  http://blocery.io 
 
 
 #### dApp
