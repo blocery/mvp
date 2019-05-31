@@ -1,4 +1,4 @@
-# blocery MVP
+# blocery Alpha-Service
 
 Blocery is a Blockchain based e-commerce platform of pre-harvest agricultural products.  
 
